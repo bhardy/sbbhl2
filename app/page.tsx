@@ -1,113 +1,171 @@
-import Image from 'next/image'
+const LEAGUE_ID = "xjmmzxsjlgl6mnid";
 
-export default function Home() {
+// https://www.fantrax.com/fxpa/req?leagueId=xjmmzxsjlgl6mnid
+// const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
+// const res = await fetch('https://www.fantrax.com/fxea/general/getPlayerIds?sport=NHL')
+
+const dataRS = {
+  msgs: [
+    {
+      method: "getTeamRosterInfo",
+      data: {
+        leagueId: "xjmmzxsjlgl6mnid",
+        teamId: "7jqm0zjnlgl6mnjq",
+        period: "1",
+      },
+    },
+  ],
+};
+
+const dataMBP = {
+  msgs: [
+    {
+      method: "getTeamRosterInfo",
+      data: {
+        leagueId: "xjmmzxsjlgl6mnid",
+        teamId: "a0xtpzz4lgl6mnjk",
+        period: "1",
+      },
+    },
+  ],
+};
+
+const BT = {
+  msgs: [
+    {
+      method: "getTeamRosterInfo",
+      data: {
+        leagueId: "xjmmzxsjlgl6mnid",
+        teamId: "z0jhc7kflgl6mnjf",
+        period: "2",
+      },
+    },
+  ],
+};
+
+const options = {
+  method: "POST",
+  // mode: "cors",
+  // cache: "no-cache",
+  // credentials: "same-origin",
+  headers: {
+    "Content-Type": "application/json",
+    // 'Content-Type': 'application/x-www-form-urlencoded',
+  },
+  // redirect: "follow",
+  // referrerPolicy: "no-referrer",
+  body: JSON.stringify(BT), // body data type must match "Content-Type" header
+};
+
+async function getTeamRosterInfo({
+  teamId,
+  period,
+}: {
+  teamId: string;
+  period: string;
+}) {
+  const res = await fetch(
+    "https://www.fantrax.com/fxpa/req?leagueId=xjmmzxsjlgl6mnid",
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        msgs: [
+          {
+            method: "getTeamRosterInfo",
+            data: {
+              leagueId: "xjmmzxsjlgl6mnid",
+              teamId,
+              period,
+            },
+          },
+        ],
+      }),
+    }
+  );
+
+  if (!res.ok) {
+    // This will activate the closest `error.js` Error Boundary
+    throw new Error("Failed to fetch data in getTeamRosterInfo");
+  }
+
+  return res.json();
+}
+
+const getTeamRosterInfoForPeriods = async ({
+  teamId,
+  periods,
+}: {
+  teamId: string;
+  periods: string[];
+}) => {
+  const res = await Promise.all(
+    periods.map((period) => getTeamRosterInfo({ teamId, period }))
+  );
+  return res; // Here, res is an array of response objects
+};
+
+async function getData() {
+  const responses = await getTeamRosterInfoForPeriods({
+    teamId: "z0jhc7kflgl6mnjf",
+    periods: ["1", "2", "3", "4", "5", "6"],
+  });
+
+  return responses;
+}
+
+export default async function Home() {
+  const responses = await getData();
+  // console.log(responses[0]);
   return (
     <main className="flex min-h-screen flex-col items-center justify-between p-24">
-      <div className="z-10 max-w-5xl w-full items-center justify-between font-mono text-sm lg:flex">
-        <p className="fixed left-0 top-0 flex w-full justify-center border-b border-gray-300 bg-gradient-to-b from-zinc-200 pb-6 pt-8 backdrop-blur-2xl dark:border-neutral-800 dark:bg-zinc-800/30 dark:from-inherit lg:static lg:w-auto  lg:rounded-xl lg:border lg:bg-gray-200 lg:p-4 lg:dark:bg-zinc-800/30">
-          Get started by editing&nbsp;
-          <code className="font-mono font-bold">app/page.tsx</code>
-        </p>
-        <div className="fixed bottom-0 left-0 flex h-48 w-full items-end justify-center bg-gradient-to-t from-white via-white dark:from-black dark:via-black lg:static lg:h-auto lg:w-auto lg:bg-none">
-          <a
-            className="pointer-events-none flex place-items-center gap-2 p-8 lg:pointer-events-auto lg:p-0"
-            href="https://vercel.com?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            By{' '}
-            <Image
-              src="/vercel.svg"
-              alt="Vercel Logo"
-              className="dark:invert"
-              width={100}
-              height={24}
-              priority
-            />
-          </a>
-        </div>
-      </div>
-
-      <div className="relative flex place-items-center before:absolute before:h-[300px] before:w-[480px] before:-translate-x-1/2 before:rounded-full before:bg-gradient-radial before:from-white before:to-transparent before:blur-2xl before:content-[''] after:absolute after:-z-20 after:h-[180px] after:w-[240px] after:translate-x-1/3 after:bg-gradient-conic after:from-sky-200 after:via-blue-200 after:blur-2xl after:content-[''] before:dark:bg-gradient-to-br before:dark:from-transparent before:dark:to-blue-700 before:dark:opacity-10 after:dark:from-sky-900 after:dark:via-[#0141ff] after:dark:opacity-40 before:lg:h-[360px] z-[-1]">
-        <Image
-          className="relative dark:drop-shadow-[0_0_0.3rem_#ffffff70] dark:invert"
-          src="/next.svg"
-          alt="Next.js Logo"
-          width={180}
-          height={37}
-          priority
-        />
-      </div>
-
-      <div className="mb-32 grid text-center lg:max-w-5xl lg:w-full lg:mb-0 lg:grid-cols-4 lg:text-left">
-        <a
-          href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Docs{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Find in-depth information about Next.js features and API.
-          </p>
-        </a>
-
-        <a
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Learn{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Learn about Next.js in an interactive course with&nbsp;quizzes!
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Templates{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Explore the Next.js 13 playground.
-          </p>
-        </a>
-
-        <a
-          href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template&utm_campaign=create-next-app"
-          className="group rounded-lg border border-transparent px-5 py-4 transition-colors hover:border-gray-300 hover:bg-gray-100 hover:dark:border-neutral-700 hover:dark:bg-neutral-800/30"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <h2 className={`mb-3 text-2xl font-semibold`}>
-            Deploy{' '}
-            <span className="inline-block transition-transform group-hover:translate-x-1 motion-reduce:transform-none">
-              -&gt;
-            </span>
-          </h2>
-          <p className={`m-0 max-w-[30ch] text-sm opacity-50`}>
-            Instantly deploy your Next.js site to a shareable URL with Vercel.
-          </p>
-        </a>
+      <div className="flex">
+        {responses.map((res, index) => (
+          <Column key={index} response={res} />
+        ))}
       </div>
     </main>
-  )
+  );
 }
+
+function Column({ response } : {response: any}) {
+  const periods = response.responses[0].data.displayedLists.periodList;
+  const displayedPeriod =
+    response.responses[0].data.displayedSelections.displayedPeriod;
+
+  const periodTitle = `Period ${periods[displayedPeriod - 1]}`;
+  // responses[0].data.displayedSelections.displayedPeriod
+  const players = response?.responses?.[0]?.data?.tables?.[0]?.rows.filter(
+    (item: any) => item.scorer
+  );
+  return (
+    <div>
+      <strong>{periodTitle}</strong>
+      <ul style={{width: 200}}>
+        {players.map((player: any, index: number) => {
+          const playsToday = !!player.cells[1].content
+          const bench = index >= 13
+          return(
+          <li key={player.scorer.urlName} style={{height: 50, outline: `1px solid ${bench ? 'gray' : 'white'}`, color: playsToday && !bench ? 'white' : 'gray'}}>
+            {bench && 'BENCH/'}{POSITIONS[player.posId]} - {player.scorer.shortName}
+            {playsToday && (<div> {player.cells[1].content.replace('<br/>', ' - ')}</div>)}
+            {/* <pre style={{maxWidth: 300, overflow: 'auto'}}>{JSON.stringify(player, null, 2)}</pre> */}
+          </li>
+        )})}
+      </ul>
+    </div>
+  );
+}
+
+interface PositionType {
+  [key: number]: string;
+} 
+
+const POSITIONS: PositionType = {
+  206: "C",
+  203: "LW",
+  204: "RW",
+  202: "D",
+};
