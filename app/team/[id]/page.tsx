@@ -99,16 +99,18 @@ export default async function Lineup({ params }: { params: { id: string } }) {
   // @note first array (map) is the period, period[1] is empty, tables[1] is goalies
   const players = tables.map((period) =>
     // @todo: convert filter/map into reduce, add bench/minors status
-    period[0].tables[0].rows.filter((player: any) => !!player.posId).map((player: any) => {
-      if (!player.posId) {
-        console.log(player)
+    period[0].tables[0].rows.reduce((periodAccumulator: any, player: any) => {
+      if (!!player.posId) {
+        periodAccumulator.push({
+          ...player.scorer,
+          posId: player.posId,
+          game: player.cells[1].content,
+        });
+      } else {
+        console.log(player);
       }
-      return {
-        ...player.scorer,
-        posId: player.posId,
-        game: player.cells[1].content,
-      };
-    })
+      return periodAccumulator;
+    }, [])
   );
 
   // @note this transposes the table
@@ -143,25 +145,30 @@ function Table({ headers, table }: { headers: any; table: any }) {
           <tbody className="bg-white dark:bg-slate-800">
             {table.map((row: any, index: number) => {
               // @todo: this bench check will not work great with goalies
-              const isBench = index >= 13
+              const isBench = index >= 13;
               return (
-              <tr key={index} className={isBench ? "dark:bg-slate-900" : ""}>
-                {row.map((cell: any, index: number) => {
-                  const playsToday = !!cell.game;
-                  return (
-                    <td
-                      key={`${cell.scorerId}-${index}`}
-                      className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 ${playsToday ? "text-slate-200 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"}`}
-                    >
-                      {POSITIONS[cell.posId]} - {cell.shortName}
-                      {playsToday && (
-                        <div> {cell.game.replace("<br/>", " - ")}</div>
-                      )}
-                    </td>
-                  );
-                })}
-              </tr>
-            )})}
+                <tr key={index} className={isBench ? "dark:bg-slate-900" : ""}>
+                  {row.map((cell: any, index: number) => {
+                    const playsToday = !!cell.game;
+                    return (
+                      <td
+                        key={`${cell.scorerId}-${index}`}
+                        className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 ${
+                          playsToday
+                            ? "text-slate-200 dark:text-slate-100"
+                            : "text-slate-500 dark:text-slate-400"
+                        }`}
+                      >
+                        {POSITIONS[cell.posId]} - {cell.shortName}
+                        {playsToday && (
+                          <div> {cell.game.replace("<br/>", " - ")}</div>
+                        )}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>

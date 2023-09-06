@@ -14,8 +14,12 @@ export const SelectNav = ({ teams }: { teams: any[] }) => {
     router.push(`/team/${teamId}`)
   }
 
+  console.log({pathname, activeTeam})
+
   return (
     <select className="text-black px-2 py-1" onChange={handleClick} value={activeTeam}>
+      {/* @todo: yuck */}
+      {activeTeam === '/' && (<option>Pick a team</option>)}
       {teams.map((team: any) => (
         <option key={team.id} value={team.id}>
           {team.name}
