@@ -98,7 +98,7 @@ export default async function Lineup({ params }: { params: { id: string } }) {
   // @note this bit gets the players from each period
   // @note first array (map) is the period, period[1] is empty, tables[1] is goalies
   const playersTable = tables.reduce(
-    (periodAcc, period) => {
+    (periodAcc, period, i) => {
       const periodPlayers = period[0].tables[0].rows.reduce(
         (playerAcc: any, player: any, index: number) => {
           const isDressed = index <= 13;
@@ -222,8 +222,6 @@ function RosterTable({ headers, table }: { headers: any; table: any }) {
 }
 
 function CountTable({ counts }: { counts: any }) {
-  const headers = Object.keys(counts);
-  const values = Object.values(counts);
   return (
     <div className="relative rounded-xl overflow-auto">
       <div className="shadow-sm overflow-hidden my-8">
@@ -247,22 +245,22 @@ function CountTable({ counts }: { counts: any }) {
           <tbody className="bg-white dark:bg-slate-800">
             <tr>
               <td
-                className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
+                className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
               >
                 {counts[206]}
               </td>
               <td
-                className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
-              >
-                {counts[204]}
-              </td>
-              <td
-                className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
+                className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
               >
                 {counts[203]}
               </td>
               <td
-                className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
+                className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
+              >
+                {counts[204]}
+              </td>
+              <td
+                className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
               >
                 {counts[202]}
               </td>
