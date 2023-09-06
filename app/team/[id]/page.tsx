@@ -96,32 +96,54 @@ export default async function Lineup({ params }: { params: { id: string } }) {
   const tables = responses.map((res) => res.responses.map((p: any) => p.data));
 
   // @note this bit gets the players from each period
-  // @note first array (map) is the period, period[1] is empty, tables[1] is goalies  
-  const playersTable = tables.reduce((accumulator, period) => {
-    const periodPlayers = period[0].tables[0].rows.reduce((playerAccumulator: any, player: any) => {
-      if (!!player.posId) {
-        const newPlayer = {
-          ...player.scorer,
-          posId: player.posId,
-          game: player.cells[1].content,
-          // @todo consider adding bench/minors status
-        };
-        playerAccumulator.push(newPlayer);
-      } else {
-        // console.log(player);
+  // @note first array (map) is the period, period[1] is empty, tables[1] is goalies
+  const playersTable = tables.reduce(
+    (periodAcc, period) => {
+      const periodPlayers = period[0].tables[0].rows.reduce(
+        (playerAcc: any, player: any, index: number) => {
+          const isDressed = index <= 13;
+          const game = player.cells[1].content;
+          if (!!player.posId) {
+            const newPlayer = {
+              ...player.scorer,
+              posId: player.posId,
+              game,
+              isDressed,
+              // @todo consider adding bench/minors status
+            };
+            playerAcc.players.push(newPlayer);
+
+            // Increment the count for the current posId only when isDressed is true
+            if (isDressed && game) {
+              if (!playerAcc.count[player.posId]) {
+                playerAcc.count[player.posId] = 1;
+              } else {
+                playerAcc.count[player.posId]++;
+              }
+            }
+          } else {
+            // console.log(player);
+          }
+          return playerAcc;
+        },
+        { players: [], count: {} }
+      );
+
+      periodAcc.players.push(periodPlayers.players);
+
+      // Merge the counts for this period into the accumulator
+      for (const posId in periodPlayers.count) {
+        if (!periodAcc.count[posId]) {
+          periodAcc.count[posId] = periodPlayers.count[posId];
+        } else {
+          periodAcc.count[posId] += periodPlayers.count[posId];
+        }
       }
-      return playerAccumulator;
-    }, []);
-  
-    accumulator.players.push(periodPlayers);
-    accumulator.count += periodPlayers.length;
-  
-    return accumulator;
-  }, { players: [], count: 0 });
-  
-  // Access the 2-dimensional players array and the total count
-  console.log(playersTable.players[1]);
-  console.log(playersTable.count);
+
+      return periodAcc;
+    },
+    { players: [], count: {} }
+  );
 
   // @note this transposes the table
   // @todo: add goalies
@@ -130,13 +152,14 @@ export default async function Lineup({ params }: { params: { id: string } }) {
 
   return (
     <main className="mt-8">
-      <Table headers={periods} table={table} />
+      <CountTable counts={playersTable.count} />
+      <RosterTable headers={periods} table={table} />
       {/* @todo add counts */}
     </main>
   );
 }
 
-function Table({ headers, table }: { headers: any; table: any }) {
+function RosterTable({ headers, table }: { headers: any; table: any }) {
   return (
     <div className="relative rounded-xl overflow-auto">
       <div className="shadow-sm overflow-hidden my-8">
@@ -156,6 +179,7 @@ function Table({ headers, table }: { headers: any; table: any }) {
           <tbody className="bg-white dark:bg-slate-800">
             {table.map((row: any, index: number) => {
               // @todo: this bench check will not work great with goalies
+              // isDressed is now in the player object
               const isBench = index >= 13;
               return (
                 <tr key={index} className={isBench ? "dark:bg-slate-900" : ""}>
@@ -163,12 +187,12 @@ function Table({ headers, table }: { headers: any; table: any }) {
                     if (!cell) {
                       return (
                         <td
-                        key={index}
-                        className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
-                      >
-                        —
-                      </td>
-                      )
+                          key={index}
+                          className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
+                        >
+                          —
+                        </td>
+                      );
                     }
                     const playsToday = !!cell.game;
                     return (
@@ -190,6 +214,59 @@ function Table({ headers, table }: { headers: any; table: any }) {
                 </tr>
               );
             })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
+
+function CountTable({ counts }: { counts: any }) {
+  const headers = Object.keys(counts);
+  const values = Object.values(counts);
+  return (
+    <div className="relative rounded-xl overflow-auto">
+      <div className="shadow-sm overflow-hidden my-8">
+        <table className="border-collapse table-auto w-full text-sm">
+          <thead>
+            <tr>
+              <th className="border-b dark:border-slate-600 font-medium p-4 pl-8 pt-0 pb-3 text-slate-400 dark:text-slate-200 text-left">
+                C
+              </th>
+              <th className="border-b dark:border-slate-600 font-medium p-4 pl-8 pt-0 pb-3 text-slate-400 dark:text-slate-200 text-left">
+                LW
+              </th>
+              <th className="border-b dark:border-slate-600 font-medium p-4 pl-8 pt-0 pb-3 text-slate-400 dark:text-slate-200 text-left">
+                RW
+              </th>
+              <th className="border-b dark:border-slate-600 font-medium p-4 pl-8 pt-0 pb-3 text-slate-400 dark:text-slate-200 text-left">
+                D
+              </th>
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-slate-800">
+            <tr>
+              <td
+                className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
+              >
+                {counts[206]}
+              </td>
+              <td
+                className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
+              >
+                {counts[204]}
+              </td>
+              <td
+                className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
+              >
+                {counts[203]}
+              </td>
+              <td
+                className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
+              >
+                {counts[202]}
+              </td>
+            </tr>
           </tbody>
         </table>
       </div>
