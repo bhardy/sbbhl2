@@ -98,18 +98,19 @@ export default async function Lineup({ params }: { params: { id: string } }) {
   // @note this bit gets the players from each period
   // @note first array (map) is the period, period[1] is empty, tables[1] is goalies
   const players = tables.map((period) =>
-    // @todo: convert filter/map into reduce, add bench/minors status
-    period[0].tables[0].rows.reduce((periodAccumulator: any, player: any) => {
+    period[0].tables[0].rows.reduce((acc: any, player: any) => {
       if (!!player.posId) {
-        periodAccumulator.push({
-          ...player.scorer,
-          posId: player.posId,
-          game: player.cells[1].content,
-        });
-      } else {
-        console.log(player);
+        return [
+          ...acc,
+          {
+            ...player.scorer,
+            posId: player.posId,
+            game: player.cells[1].content,
+            // @todo consider adding bench/minors status
+          }
+        ]
       }
-      return periodAccumulator;
+      return acc;
     }, [])
   );
 
