@@ -1,3 +1,5 @@
+import { zip } from "lodash-es";
+
 const LEAGUE_ID = "xjmmzxsjlgl6mnid";
 
 // https://www.fantrax.com/fxpa/req?leagueId=xjmmzxsjlgl6mnid
@@ -7,7 +9,7 @@ const LEAGUE_ID = "xjmmzxsjlgl6mnid";
 // @todo move out of here
 interface PositionType {
   [key: number]: string;
-} 
+}
 
 // @todo add goalies
 const POSITIONS: PositionType = {
@@ -43,6 +45,7 @@ async function getTeamRosterInfo({
           },
         ],
       }),
+      cache: "no-store",
     }
   );
 
@@ -77,53 +80,91 @@ async function getTeamData(teamId: string) {
   return responses;
 }
 
-export default async function Team({params} : { params: { id: string }}) {
-  const responses = await getTeamData(params.id); 
+export default async function Lineup({ params }: { params: { id: string } }) {
+  const responses = await getTeamData(params.id);
+
+  // @note this bit gets the table headings
+  const periods = responses.map((period, index) => {
+    // maybe this should be the index
+    const periodList = period.responses[0].data.displayedLists.periodList;
+    const displayedPeriod =
+      period.responses[0].data.displayedSelections.displayedPeriod;
+    return `Period ${periodList[displayedPeriod - 1]}`;
+  });
+
+  // @note this bit gets each period (day)'s table
+  const tables = responses.map((res) => res.responses.map((p: any) => p.data));
+
+  // @note this bit gets the players from each period
+  // @note first array (map) is the period, period[1] is empty, tables[1] is goalies
+  const players = tables.map((period) =>
+    // @todo: convert filter/map into reduce, add bench/minors status
+    period[0].tables[0].rows.filter((player: any) => !!player.posId).map((player: any) => {
+      if (!player.posId) {
+        console.log(player)
+      }
+      return {
+        ...player.scorer,
+        posId: player.posId,
+        game: player.cells[1].content,
+      };
+    })
+  );
+
+  // @note this transposes the table
+  // @todo: add goalies
+  const table = zip(...players);
 
   return (
     <main className="mt-8">
-      <div className="flex">
-        {responses.map((res, index) => (
-          <Column key={index} response={res} />
-        ))}
-      </div>
+      <Table headers={periods} table={table} />
       {/* @todo add counts */}
     </main>
   );
 }
 
-// @todo make a real table
-function Column({ response } : {response: any}) {
-  const periods = response.responses[0].data.displayedLists.periodList;
-  const displayedPeriod =
-    response.responses[0].data.displayedSelections.displayedPeriod;
-
-  const periodTitle = `Period ${periods[displayedPeriod - 1]}`;
-  // responses[0].data.displayedSelections.displayedPeriod
-  const players = response?.responses?.[0]?.data?.tables?.[0]?.rows.filter(
-    (item: any) => item.scorer
-  );
-
-  // return (
-  //   <pre>
-  //     {JSON.stringify(players, null, 2)}
-  //   </pre>
-  // )
+function Table({ headers, table }: { headers: any; table: any }) {
   return (
-    <div>
-      <strong>{periodTitle}</strong>
-      <ul style={{width: 200}}>
-        {players.map((player: any, index: number) => {
-          const playsToday = !!player.cells[1].content
-          const bench = index >= 13
-          return(
-          <li key={player.scorer.urlName} style={{height: 70, outline: `1px solid ${bench ? 'gray' : 'white'}`, color: playsToday && !bench ? 'white' : 'gray'}}>
-            {bench && 'BENCH/'}{POSITIONS[player.posId]} - {player.scorer.shortName}
-            {playsToday && (<div> {player.cells[1].content.replace('<br/>', ' - ')}</div>)}
-            {/* <pre style={{maxWidth: 300, overflow: 'auto'}}>{JSON.stringify(player, null, 2)}</pre> */}
-          </li>
-        )})}
-      </ul>
+    <div className="relative rounded-xl overflow-auto">
+      <div className="shadow-sm overflow-hidden my-8">
+        <table className="border-collapse table-auto w-full text-sm">
+          <thead>
+            <tr>
+              {headers.map((header: any) => (
+                <th
+                  key={header}
+                  className="border-b dark:border-slate-600 font-medium p-4 pl-8 pt-0 pb-3 text-slate-400 dark:text-slate-200 text-left"
+                >
+                  {header}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="bg-white dark:bg-slate-800">
+            {table.map((row: any, index: number) => {
+              // @todo: this bench check will not work great with goalies
+              const isBench = index >= 13
+              return (
+              <tr key={index} className={isBench ? "dark:bg-slate-900" : ""}>
+                {row.map((cell: any, index: number) => {
+                  const playsToday = !!cell.game;
+                  return (
+                    <td
+                      key={`${cell.scorerId}-${index}`}
+                      className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 ${playsToday ? "text-slate-200 dark:text-slate-100" : "text-slate-500 dark:text-slate-400"}`}
+                    >
+                      {POSITIONS[cell.posId]} - {cell.shortName}
+                      {playsToday && (
+                        <div> {cell.game.replace("<br/>", " - ")}</div>
+                      )}
+                    </td>
+                  );
+                })}
+              </tr>
+            )})}
+          </tbody>
+        </table>
+      </div>
     </div>
   );
 }
