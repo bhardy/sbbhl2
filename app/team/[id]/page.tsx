@@ -96,27 +96,37 @@ export default async function Lineup({ params }: { params: { id: string } }) {
   const tables = responses.map((res) => res.responses.map((p: any) => p.data));
 
   // @note this bit gets the players from each period
-  // @note first array (map) is the period, period[1] is empty, tables[1] is goalies
-  const players = tables.map((period) =>
-    period[0].tables[0].rows.reduce((acc: any, player: any) => {
+  // @note first array (map) is the period, period[1] is empty, tables[1] is goalies  
+  const playersTable = tables.reduce((accumulator, period) => {
+    const periodPlayers = period[0].tables[0].rows.reduce((playerAccumulator: any, player: any) => {
       if (!!player.posId) {
-        return [
-          ...acc,
-          {
-            ...player.scorer,
-            posId: player.posId,
-            game: player.cells[1].content,
-            // @todo consider adding bench/minors status
-          }
-        ]
+        const newPlayer = {
+          ...player.scorer,
+          posId: player.posId,
+          game: player.cells[1].content,
+          // @todo consider adding bench/minors status
+        };
+        playerAccumulator.push(newPlayer);
+      } else {
+        // console.log(player);
       }
-      return acc;
-    }, [])
-  );
+      return playerAccumulator;
+    }, []);
+  
+    accumulator.players.push(periodPlayers);
+    accumulator.count += periodPlayers.length;
+  
+    return accumulator;
+  }, { players: [], count: 0 });
+  
+  // Access the 2-dimensional players array and the total count
+  console.log(playersTable.players[1]);
+  console.log(playersTable.count);
 
   // @note this transposes the table
   // @todo: add goalies
-  const table = zip(...players);
+  const table = zip(...playersTable.players);
+  // const table = zip(playersTable.players)
 
   return (
     <main className="mt-8">
@@ -150,6 +160,16 @@ function Table({ headers, table }: { headers: any; table: any }) {
               return (
                 <tr key={index} className={isBench ? "dark:bg-slate-900" : ""}>
                   {row.map((cell: any, index: number) => {
+                    if (!cell) {
+                      return (
+                        <td
+                        key={index}
+                        className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
+                      >
+                        —
+                      </td>
+                      )
+                    }
                     const playsToday = !!cell.game;
                     return (
                       <td
