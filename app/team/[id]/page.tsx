@@ -154,7 +154,6 @@ export default async function Lineup({ params }: { params: { id: string } }) {
     <main className="mt-8">
       <CountTable counts={playersTable.count} />
       <RosterTable headers={periods} table={table} />
-      {/* @todo add counts */}
     </main>
   );
 }
@@ -222,6 +221,8 @@ function RosterTable({ headers, table }: { headers: any; table: any }) {
 }
 
 function CountTable({ counts }: { counts: any }) {
+  // @todo DRY it up
+  // @todo get max games from data
   return (
     <div className="relative rounded-xl overflow-auto">
       <div className="shadow-sm overflow-hidden my-8">
@@ -247,22 +248,30 @@ function CountTable({ counts }: { counts: any }) {
               <td
                 className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
               >
-                {counts[206]}
+                <span className={counts[206] > 9 ? "text-red-400" : counts[206] < 9 ? "text-blue-400" : ""}>
+                  {counts[206]} / 9
+                </span>
               </td>
               <td
                 className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
               >
-                {counts[203]}
+                <span className={counts[203] > 9 ? "text-red-400" : counts[203] < 9 ? "text-blue-400" : ""}>
+                  {counts[203]} / 9
+                </span>
               </td>
               <td
                 className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
               >
-                {counts[204]}
+                <span className={counts[204] > 9 ? "text-red-400" : counts[204] < 9 ? "text-blue-400" : ""}>
+                  {counts[204]} / 9
+                </span>
               </td>
               <td
                 className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
               >
-                {counts[202]}
+                <span className={counts[202] > 9 ? "text-red-400" : counts[202] < 9 ? "text-blue-400" : ""}>
+                  {counts[202]} / 9
+                </span>
               </td>
             </tr>
           </tbody>
