@@ -160,9 +160,9 @@ export default async function Lineup({ params }: { params: { id: string } }) {
 
 function RosterTable({ headers, table }: { headers: any; table: any }) {
   return (
-    <div className="relative rounded-xl overflow-auto">
-      <div className="shadow-sm overflow-hidden my-8">
-        <table className="border-collapse table-auto w-full text-sm">
+    <div className="relative rounded-xl overflow-auto -mx-4">
+      <div className="shadow-sm my-8">
+        <table className="border-collapse table-auto w-full text-sm ">
           <thead>
             <tr>
               {headers.map((header: any) => (
@@ -224,8 +224,8 @@ function CountTable({ counts }: { counts: any }) {
   // @todo DRY it up
   // @todo get max games from data
   return (
-    <div className="relative rounded-xl overflow-auto">
-      <div className="shadow-sm overflow-hidden my-8">
+    <div className="relative rounded-xl overflow-auto -mx-4">
+      <div className="shadow-sm my-8">
         <table className="border-collapse table-auto w-full text-sm">
           <thead>
             <tr>

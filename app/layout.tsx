@@ -50,7 +50,7 @@ export default async function RootLayout({
       <body
         className={`${robotoMono.className} mx-auto p-4 antialiased text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900`}
       >
-        <div className="max-w-8xl mx-auto px-4 sm:px-6 md:px-8">
+        <div className="max-w-8xl mx-auto sm:px-6 md:px-8">
           <nav className="flex flex-col gap-2 items-start">
             <h1 className="text-3xl font-bold">SBBHL Lineup Helper</h1>
             <SelectNav teams={teams} />
