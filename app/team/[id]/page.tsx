@@ -32,7 +32,8 @@ const getPositionTable = (
     (periodAcc: any, period: any, i: number) => {
       const periodPlayers = period[0].tables[tableIndex].rows.reduce(
         (playerAcc: any, player: any, index: number) => {
-          const isDressed = index <= activeCount;
+          // @note: we're just guessing that status "1" means "dressed"
+          const isDressed = player.statusId === "1";
           const game = player.cells[1].content;
           if (!!player.posId) {
             const newPlayer = {
@@ -47,8 +48,6 @@ const getPositionTable = (
             // Increment the count for the current posId only when isDressed is true
             if (isDressed && game) {
               if (!playerAcc.count[player.posId]) {
-                if (player.scorer.posShortNames === "G")
-                  console.log("$$", player);
                 playerAcc.count[player.posId] = 1;
               } else {
                 playerAcc.count[player.posId]++;
@@ -249,7 +248,6 @@ function RosterTable({
 }
 
 function CountTable({ counts }: { counts: any }) {
-  console.log(counts);
   // @todo DRY it up
   // @todo get max games from data
   //
