@@ -168,8 +168,11 @@ export default async function Lineup({ params }: { params: { id: string } }) {
 
   return (
     <main className="mt-8">
+      <h2 className="text-2xl font-bold">Counts</h2>
       <CountTable counts={counts} />
+      <h2 className="text-2xl font-bold">Skaters</h2>
       <RosterTable headers={periods} table={players} count={DRESSED_SKATERS} />
+      <h2 className="text-2xl font-bold">Goalies</h2>
       <RosterTable headers={periods} table={goalies} count={DRESSED_GOALIES} />
     </main>
   );
@@ -206,7 +209,7 @@ function RosterTable({
               // isDressed is now in the player object
               const isBench = index >= count;
               return (
-                <tr key={index} className={isBench ? "dark:bg-slate-900" : ""}>
+                <tr key={index} className={isBench ? "" : "dark:bg-slate-900"}>
                   {row.map((cell: any, index: number) => {
                     if (!cell) {
                       return (
