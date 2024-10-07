@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 
 async function getTeams() {
   const res = await fetch(
-    "https://www.fantrax.com/fxpa/req?leagueId=xjmmzxsjlgl6mnid",
+    "https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j",
     {
       method: "POST",
       // mode: "cors",
@@ -28,12 +28,12 @@ async function getTeams() {
           {
             method: "getTeamRosterInfo",
             data: {
-              leagueId: "xjmmzxsjlgl6mnid",
+              leagueId: "erva93djlwitpx9j",
             },
           },
         ],
       }),
-    }
+    },
   );
   const data = await res.json();
   return data.responses?.[0].data.fantasyTeams;

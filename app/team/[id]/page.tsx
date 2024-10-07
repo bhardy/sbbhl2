@@ -1,8 +1,8 @@
 import { zip } from "lodash-es";
 
-const LEAGUE_ID = "xjmmzxsjlgl6mnid";
+const LEAGUE_ID = "erva93djlwitpx9j";
 
-// https://www.fantrax.com/fxpa/req?leagueId=xjmmzxsjlgl6mnid
+// https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
 // const res = await fetch('https://www.fantrax.com/fxea/general/getPlayerIds?sport=NHL')
 
@@ -27,7 +27,7 @@ async function getTeamRosterInfo({
   period: string;
 }) {
   const res = await fetch(
-    "https://www.fantrax.com/fxpa/req?leagueId=xjmmzxsjlgl6mnid",
+    "https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j",
     {
       method: "POST",
       headers: {
@@ -38,7 +38,7 @@ async function getTeamRosterInfo({
           {
             method: "getTeamRosterInfo",
             data: {
-              leagueId: "xjmmzxsjlgl6mnid",
+              leagueId: "erva93djlwitpx9j",
               teamId,
               period,
             },
@@ -46,7 +46,7 @@ async function getTeamRosterInfo({
         ],
       }),
       cache: "no-store",
-    }
+    },
   );
 
   if (!res.ok) {
@@ -65,7 +65,7 @@ const getTeamRosterInfoForPeriods = async ({
   periods: string[];
 }) => {
   const res = await Promise.all(
-    periods.map((period) => getTeamRosterInfo({ teamId, period }))
+    periods.map((period) => getTeamRosterInfo({ teamId, period })),
   );
   return res; // Here, res is an array of response objects
 };
@@ -126,7 +126,7 @@ export default async function Lineup({ params }: { params: { id: string } }) {
           }
           return playerAcc;
         },
-        { players: [], count: {} }
+        { players: [], count: {} },
       );
 
       periodAcc.players.push(periodPlayers.players);
@@ -142,7 +142,7 @@ export default async function Lineup({ params }: { params: { id: string } }) {
 
       return periodAcc;
     },
-    { players: [], count: {} }
+    { players: [], count: {} },
   );
 
   // @note this transposes the table
@@ -245,31 +245,55 @@ function CountTable({ counts }: { counts: any }) {
           </thead>
           <tbody className="bg-white dark:bg-slate-800">
             <tr>
-              <td
-                className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
-              >
-                <span className={counts[206] > 9 ? "text-red-400" : counts[206] < 9 ? "text-blue-400" : ""}>
+              <td className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100">
+                <span
+                  className={
+                    counts[206] > 9
+                      ? "text-red-400"
+                      : counts[206] < 9
+                        ? "text-blue-400"
+                        : ""
+                  }
+                >
                   {counts[206]} / 9
                 </span>
               </td>
-              <td
-                className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
-              >
-                <span className={counts[203] > 9 ? "text-red-400" : counts[203] < 9 ? "text-blue-400" : ""}>
+              <td className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100">
+                <span
+                  className={
+                    counts[203] > 9
+                      ? "text-red-400"
+                      : counts[203] < 9
+                        ? "text-blue-400"
+                        : ""
+                  }
+                >
                   {counts[203]} / 9
                 </span>
               </td>
-              <td
-                className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
-              >
-                <span className={counts[204] > 9 ? "text-red-400" : counts[204] < 9 ? "text-blue-400" : ""}>
+              <td className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100">
+                <span
+                  className={
+                    counts[204] > 9
+                      ? "text-red-400"
+                      : counts[204] < 9
+                        ? "text-blue-400"
+                        : ""
+                  }
+                >
                   {counts[204]} / 9
                 </span>
               </td>
-              <td
-                className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100"
-              >
-                <span className={counts[202] > 9 ? "text-red-400" : counts[202] < 9 ? "text-blue-400" : ""}>
+              <td className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-200 dark:text-slate-100">
+                <span
+                  className={
+                    counts[202] > 9
+                      ? "text-red-400"
+                      : counts[202] < 9
+                        ? "text-blue-400"
+                        : ""
+                  }
+                >
                   {counts[202]} / 9
                 </span>
               </td>
