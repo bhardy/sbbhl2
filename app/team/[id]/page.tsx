@@ -23,11 +23,7 @@ const DRESSED_GOALIES = 2;
 const DRESSED_SKATERS = 13;
 
 // @note: skaters are tables[0], goalies are tables[1]
-const getPositionTable = (
-  tables: any,
-  tableIndex: number,
-  activeCount: number,
-) =>
+const getPositionTable = (tables: any, tableIndex: number) =>
   tables.reduce(
     (periodAcc: any, period: any, i: number) => {
       const periodPlayers = period[0].tables[tableIndex].rows.reduce(
@@ -155,8 +151,8 @@ export default async function Lineup({ params }: { params: { id: string } }) {
 
   // @note this bit gets the players from each period
   // @note first array (map) is the period, period[1] is empty, tables[1] is goalies
-  const playersTable = getPositionTable(tables, 0, DRESSED_SKATERS);
-  const goaliesTable = getPositionTable(tables, 1, DRESSED_GOALIES);
+  const playersTable = getPositionTable(tables, 0);
+  const goaliesTable = getPositionTable(tables, 1);
 
   // @note this transposes the table
   // @todo: add goalies
