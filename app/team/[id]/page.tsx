@@ -246,7 +246,7 @@ function RosterTable({
                   }
                 >
                   {row.map((cell: any, index: number) => {
-                    if (!cell) {
+                    if (!cell || !cell?.posIds?.length) {
                       return (
                         <td
                           key={index}
