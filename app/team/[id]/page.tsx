@@ -19,6 +19,26 @@ const POSITIONS: PositionType = {
   202: "D",
 };
 
+interface PositionColorType {
+  [key: number]: string;
+}
+
+const POSITION_COLORS: PositionColorType = {
+  201: "bg-cyan-500",
+  206: "bg-pink-500",
+  203: "bg-purple-500",
+  204: "bg-blue-500",
+  202: "bg-green-500",
+};
+
+const POSITION_TEXT_COLORS: PositionColorType = {
+  201: "text-cyan-500",
+  206: "text-pink-500",
+  203: "text-purple-500",
+  204: "text-blue-500",
+  202: "text-green-500",
+};
+
 const DRESSED_GOALIES = 2;
 const DRESSED_SKATERS = 13;
 
@@ -191,20 +211,24 @@ function RosterTable({
   table: any;
   count: number;
 }) {
+  // const [period, date] = headers.split(" (");
   return (
     <div className="relative rounded-xl overflow-auto -mx-4">
       <div className="shadow-sm my-8">
-        <table className="border-collapse table-auto w-full text-sm ">
+        <table className="border-collapse table-fixed w-full text-sm ">
           <thead>
             <tr>
-              {headers.map((header: any) => (
-                <th
-                  key={header}
-                  className="border-b dark:border-slate-600 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left"
-                >
-                  {header}
-                </th>
-              ))}
+              {headers.map((header: any) => {
+                const [period, date] = header.split(" (");
+                return (
+                  <th
+                    key={header}
+                    className="border-b border-slate-300 dark:border-slate-500 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left w-52"
+                  >
+                    {period} <br /> {date}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-slate-800">
@@ -226,26 +250,53 @@ function RosterTable({
                       return (
                         <td
                           key={index}
-                          className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
+                          className={`border-b border-slate-200 dark:border-slate-700 p-4 pl-8 text-slate-500 dark:text-slate-400"`}
                         >
                           —
                         </td>
                       );
                     }
                     const playsToday = !!cell.game;
+                    const [opponent, time] = playsToday
+                      ? cell.game.split("<br/>")
+                      : ["", ""];
+
                     return (
                       <td
                         key={`${cell.scorerId}-${index}`}
-                        className={`border-b border-slate-100 dark:border-slate-700 p-4 pl-8 ${
+                        className={`border-b border-slate-200 dark:border-slate-700 align-top p-4 pl-8 ${
                           playsToday
                             ? "text-slate-700 dark:text-slate-200"
                             : "text-slate-500 dark:text-slate-400"
                         }`}
                       >
-                        {POSITIONS[cell.posId]} - {cell.shortName}
+                        <span
+                          className={`py-0 px-1 rounded-sm ${playsToday ? `${POSITION_COLORS[cell.posId]} text-slate-100` : "bg-slate-200 text-slate-400 dark:bg-slate-500 dark:text-slate-300"}`}
+                        >
+                          {POSITIONS[cell.posId]}
+                        </span>{" "}
                         {playsToday && (
-                          <div> {cell.game.replace("<br/>", " - ")}</div>
+                          <span className="text-xs">
+                            {opponent} — {time}
+                          </span>
                         )}
+                        <div className="font-bold">
+                          {cell.shortName} (
+                          {cell.posIds.map(
+                            (pos: keyof PositionType, index: number) => {
+                              return (
+                                <span
+                                  key={pos}
+                                  className={`${playsToday ? POSITION_TEXT_COLORS[pos] : "text-slate-400 dark:text-slate-400"} text-xs`}
+                                >
+                                  {POSITIONS[pos]}
+                                  {index !== cell.posIds.length - 1 && ", "}
+                                </span>
+                              );
+                            },
+                          )}
+                          ){" "}
+                        </div>
                       </td>
                     );
                   })}
@@ -268,26 +319,26 @@ function CountTable({ counts }: { counts: any }) {
         <table className="border-collapse table-auto w-full text-sm">
           <thead>
             <tr>
-              <th className="border-b dark:border-slate-600 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left">
+              <th className="border-b border-slate-300 dark:border-slate-500 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left">
                 C
               </th>
-              <th className="border-b dark:border-slate-600 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left">
+              <th className="border-b border-slate-300 dark:border-slate-500 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left">
                 LW
               </th>
-              <th className="border-b dark:border-slate-600 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left">
+              <th className="border-b border-slate-300 dark:border-slate-500 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left">
                 RW
               </th>
-              <th className="border-b dark:border-slate-600 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left">
+              <th className="border-b border-slate-300 dark:border-slate-500 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left">
                 D
               </th>
-              <th className="border-b dark:border-slate-600 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left">
+              <th className="border-b border-slate-300 dark:border-slate-500 font-bold p-4 pl-8 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left">
                 G
               </th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-slate-800">
             <tr>
-              <td className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-700 dark:text-slate-200">
+              <td className="border-b border-slate-200 dark:border-slate-700 p-4 pl-8 text-slate-700 dark:text-slate-200">
                 <span
                   className={
                     counts[206] > minMax.C
@@ -300,7 +351,7 @@ function CountTable({ counts }: { counts: any }) {
                   {counts[206]} / {minMax.C}
                 </span>
               </td>
-              <td className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-700 dark:text-slate-200">
+              <td className="border-b border-slate-200 dark:border-slate-700 p-4 pl-8 text-slate-700 dark:text-slate-200">
                 <span
                   className={
                     counts[203] > minMax.LW
@@ -313,7 +364,7 @@ function CountTable({ counts }: { counts: any }) {
                   {counts[203]} / {minMax.LW}
                 </span>
               </td>
-              <td className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-700 dark:text-slate-200">
+              <td className="border-b border-slate-200 dark:border-slate-700 p-4 pl-8 text-slate-700 dark:text-slate-200">
                 <span
                   className={
                     counts[204] > minMax.RW
@@ -326,7 +377,7 @@ function CountTable({ counts }: { counts: any }) {
                   {counts[204]} / {minMax.RW}
                 </span>
               </td>
-              <td className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-700 dark:text-slate-200">
+              <td className="border-b border-slate-200 dark:border-slate-700 p-4 pl-8 text-slate-700 dark:text-slate-200">
                 <span
                   className={
                     counts[202] > minMax.D
@@ -339,7 +390,7 @@ function CountTable({ counts }: { counts: any }) {
                   {counts[202]} / {minMax.D}
                 </span>
               </td>
-              <td className="border-b border-slate-100 dark:border-slate-700 p-4 pl-8 text-slate-700 dark:text-slate-200">
+              <td className="border-b border-slate-200 dark:border-slate-700 p-4 pl-8 text-slate-700 dark:text-slate-200">
                 <span
                   className={
                     counts[201] > minMax.G
