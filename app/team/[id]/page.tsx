@@ -22,6 +22,15 @@ const POSITIONS: PositionType = {
 const DRESSED_GOALIES = 2;
 const DRESSED_SKATERS = 13;
 
+const periods = ["7", "8", "9", "10", "11", "12", "13"];
+const minMax = {
+  C: 9,
+  LW: 9,
+  RW: 9,
+  D: 12,
+  G: 6,
+};
+
 // @note: skaters are tables[0], goalies are tables[1]
 const getPositionTable = (tables: any, tableIndex: number) =>
   tables.reduce(
@@ -128,7 +137,7 @@ const getTeamRosterInfoForPeriods = async ({
 async function getTeamData(teamId: string) {
   const responses = await getTeamRosterInfoForPeriods({
     teamId,
-    periods: ["1", "2", "3", "4", "5", "6"],
+    periods,
   });
 
   return responses;
@@ -245,16 +254,7 @@ function RosterTable({
 
 function CountTable({ counts }: { counts: any }) {
   // @todo DRY it up
-  // @todo get max games from data
-  //
-  // @DB: these need to pull from the DB
-  const minMax = {
-    C: 8,
-    LW: 8,
-    RW: 8,
-    D: 11,
-    G: 6,
-  };
+
   return (
     <div className="relative rounded-xl overflow-auto -mx-4">
       <div className="shadow-sm my-8">
