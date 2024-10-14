@@ -1,28 +1,32 @@
-'use client'
+"use client";
 
-import { useRouter, usePathname, useSearchParams } from 'next/navigation'
+import { useRouter, usePathname, useSearchParams } from "next/navigation";
 
 export const SelectNav = ({ teams }: { teams: any[] }) => {
-  const router = useRouter()
-  const pathname = usePathname()
-  const activeTeam = pathname.split('/team/').pop()
-  if (!teams) return null
+  const router = useRouter();
+  const pathname = usePathname();
+  const activeTeam = pathname.split("/team/").pop();
+  if (!teams) return null;
 
   const handleClick = (event: any) => {
-    event.preventDefault()
-    const teamId = event.target.value
-    router.push(`/team/${teamId}`)
-  }
+    event.preventDefault();
+    const teamId = event.target.value;
+    router.push(`/team/${teamId}`);
+  };
 
   return (
-    <select className="text-black px-2 py-1" onChange={handleClick} value={activeTeam}>
+    <select
+      className="rounded-lg text-black px-2 py-1 bg-slate-200 dark:bg-slate-200"
+      onChange={handleClick}
+      value={activeTeam}
+    >
       {/* @todo: yuck */}
-      {activeTeam === '/' && (<option>Pick a team</option>)}
+      {activeTeam === "/" && <option>Pick a team</option>}
       {teams.map((team: any) => (
         <option key={team.id} value={team.id}>
           {team.name}
         </option>
       ))}
     </select>
-  )
-}
+  );
+};
