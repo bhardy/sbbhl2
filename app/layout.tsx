@@ -1,10 +1,19 @@
-import "./globals.css";
 import type { Metadata } from "next";
-import { Roboto_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import { SelectNav } from "./components/SelectNav";
 import { Refresh } from "./components/Refresh";
+import "./globals.css";
 
-const robotoMono = Roboto_Mono({ subsets: ["latin"] });
+const geistSans = localFont({
+  src: "./fonts/GeistVF.woff",
+  variable: "--font-geist-sans",
+  weight: "100 900",
+});
+const geistMono = localFont({
+  src: "./fonts/GeistMonoVF.woff",
+  variable: "--font-geist-mono",
+  weight: "100 900",
+});
 
 export const metadata: Metadata = {
   title: "SBBHL Lineup helper",
@@ -48,7 +57,7 @@ export default async function RootLayout({
   return (
     <html lang="en">
       <body
-        className={`${robotoMono.className} mx-auto p-4 antialiased text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900`}
+        className={`${geistSans.variable} ${geistMono.variable} antialiased mx-auto p-4  text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 font-mono`}
       >
         <div className="max-w-8xl mx-auto sm:px-6 md:px-8">
           <nav className="flex flex-col gap-2 items-start">
