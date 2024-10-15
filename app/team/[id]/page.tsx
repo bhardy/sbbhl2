@@ -1,6 +1,10 @@
+import util from "util";
 import { zip } from "lodash-es";
 
-// const LEAGUE_ID = "erva93djlwitpx9j";
+const log = (data: any) =>
+  console.log(util.inspect(data, { depth: null, colors: true }));
+
+const LEAGUE_ID = "erva93djlwitpx9j";
 
 // https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
@@ -110,7 +114,7 @@ async function getTeamRosterInfo({
   period: string;
 }) {
   const res = await fetch(
-    "https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j",
+    `https://www.fantrax.com/fxpa/req?leagueId=${LEAGUE_ID}`,
     {
       method: "POST",
       headers: {
@@ -121,9 +125,77 @@ async function getTeamRosterInfo({
           {
             method: "getTeamRosterInfo",
             data: {
-              leagueId: "erva93djlwitpx9j",
+              leagueId: LEAGUE_ID,
               teamId,
               period,
+            },
+          },
+        ],
+      }),
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok) {
+    // This will activate the closest `error.js` Error Boundary
+    throw new Error("Failed to fetch data in getTeamRosterInfo");
+  }
+
+  return res.json();
+}
+async function getGPView({
+  teamId,
+  period,
+}: {
+  teamId: string;
+  period: string;
+}) {
+  const res = await fetch(
+    `https://www.fantrax.com/fxpa/req?leagueId=${LEAGUE_ID}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        msgs: [
+          {
+            method: "getTeamRosterInfo",
+            data: {
+              leagueId: LEAGUE_ID,
+              teamId,
+              period,
+              view: "GAMES_PER_POS",
+            },
+          },
+        ],
+      }),
+      cache: "no-store",
+    },
+  );
+
+  if (!res.ok) {
+    // This will activate the closest `error.js` Error Boundary
+    throw new Error("Failed to fetch data in getTeamRosterInfo");
+  }
+
+  return res.json();
+}
+
+async function getLeagueInfo() {
+  const res = await fetch(
+    `https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=${LEAGUE_ID}`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        msgs: [
+          {
+            method: "getLeagueInfo",
+            data: {
+              leagueId: LEAGUE_ID,
             },
           },
         ],
@@ -155,19 +227,55 @@ const getTeamRosterInfoForPeriods = async ({
 
 // @todo - compile the periods, and pass the periods in, maybe add to route?
 async function getTeamData(teamId: string) {
-  const responses = await getTeamRosterInfoForPeriods({
+  const roster = await getTeamRosterInfoForPeriods({
     teamId,
     periods,
   });
 
+  return [roster];
+}
+
+const getTeamGPForPeriods = async ({
+  teamId,
+  periods,
+}: {
+  teamId: string;
+  periods: string[];
+}) => {
+  const res = await Promise.all(
+    periods.map((period) => getGPView({ teamId, period })),
+  );
+  return res; // Here, res is an array of response objects
+};
+
+async function getGP(teamId: string) {
+  // const responses = await getTeamGPForPeriods({ teamId, periods });
+  const responses = await getTeamGPForPeriods({ teamId, periods });
   return responses;
 }
 
 export default async function Lineup({ params }: { params: { id: string } }) {
-  const responses = await getTeamData(params.id);
+  const [roster] = await getTeamData(params.id);
+
+  const defaultScoringPeriod =
+    roster[0]?.responses[0]?.data?.displayedSelections?.displayedScoringPeriod;
+
+  // @todo: the promises should be combined above
+  // this gets the minMax and scoring periods from the roster minMax view
+  const gp = await getGP(params.id);
+  const caps = gp[0].responses[0].data.gamePlayedPerPosData.tableData;
+
+  // log(caps);
+
+  // @note these are matchups
+  const scoringPeriods =
+    gp[0].responses[0].data.displayedLists.scoringPeriodList;
+
+  // @nthese are each day, the period 1 here is used in the roster queries as a part of an array
+  const dailyPeriods = roster[0].responses[0].data.displayedLists.periodList;
 
   // @note this bit gets the table headings
-  const periods = responses.map((period) => {
+  const periods = roster.map((period) => {
     // maybe this should be the index
     const periodList = period.responses[0].data.displayedLists.periodList;
     const displayedPeriod =
@@ -176,7 +284,7 @@ export default async function Lineup({ params }: { params: { id: string } }) {
   });
 
   // @note this bit gets each period (day)'s table
-  const tables = responses.map((res) => res.responses.map((p: any) => p.data));
+  const tables = roster.map((res) => res.responses.map((p: any) => p.data));
 
   // @note this bit gets the players from each period
   // @note first array (map) is the period, period[1] is empty, tables[1] is goalies
