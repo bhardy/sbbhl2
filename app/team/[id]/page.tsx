@@ -1,6 +1,6 @@
 import { zip } from "lodash-es";
 
-const LEAGUE_ID = "erva93djlwitpx9j";
+// const LEAGUE_ID = "erva93djlwitpx9j";
 
 // https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
@@ -54,9 +54,9 @@ const minMax = {
 // @note: skaters are tables[0], goalies are tables[1]
 const getPositionTable = (tables: any, tableIndex: number) =>
   tables.reduce(
-    (periodAcc: any, period: any, i: number) => {
+    (periodAcc: any, period: any) => {
       const periodPlayers = period[0].tables[tableIndex].rows.reduce(
-        (playerAcc: any, player: any, index: number) => {
+        (playerAcc: any, player: any) => {
           // @note: we're just guessing that status "1" means "dressed"
           const isDressed = player.statusId === "1";
           const game = player.cells[1].content;
@@ -167,7 +167,7 @@ export default async function Lineup({ params }: { params: { id: string } }) {
   const responses = await getTeamData(params.id);
 
   // @note this bit gets the table headings
-  const periods = responses.map((period, index) => {
+  const periods = responses.map((period) => {
     // maybe this should be the index
     const periodList = period.responses[0].data.displayedLists.periodList;
     const displayedPeriod =
