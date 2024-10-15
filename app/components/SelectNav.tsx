@@ -1,14 +1,19 @@
 "use client";
 
-import { useRouter, usePathname, useSearchParams } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 
-export const SelectNav = ({ teams }: { teams: any[] }) => {
+type TeamTempType = {
+  id: string;
+  name: string;
+};
+
+export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
   const router = useRouter();
   const pathname = usePathname();
   const activeTeam = pathname.split("/team/").pop();
   if (!teams) return null;
 
-  const handleClick = (event: any) => {
+  const handleClick = (event: React.ChangeEvent<HTMLSelectElement>) => {
     event.preventDefault();
     const teamId = event.target.value;
     router.push(`/team/${teamId}`);
@@ -22,7 +27,7 @@ export const SelectNav = ({ teams }: { teams: any[] }) => {
     >
       {/* @todo: yuck */}
       {activeTeam === "/" && <option>Pick a team</option>}
-      {teams.map((team: any) => (
+      {teams.map((team: TeamTempType) => (
         <option key={team.id} value={team.id}>
           {team.name}
         </option>
