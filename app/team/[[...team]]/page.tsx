@@ -1,8 +1,4 @@
-import util from "util";
 import { zip } from "lodash-es";
-
-const log = (data: any) =>
-  console.log(util.inspect(data, { depth: null, colors: true }));
 
 const LEAGUE_ID = "erva93djlwitpx9j";
 
@@ -46,13 +42,117 @@ const POSITION_TEXT_COLORS: PositionColorType = {
 const DRESSED_GOALIES = 2;
 const DRESSED_SKATERS = 13;
 
-const periods = ["7", "8", "9", "10", "11", "12", "13"];
-const minMax = {
-  C: 9,
-  LW: 9,
-  RW: 9,
-  D: 12,
-  G: 6,
+type CapsType = {
+  min: string; // @note I think this is a string because it's not set
+  pos: string;
+  max: number;
+  gp: number;
+  posShort: string;
+};
+
+// @this shouldn't be hardcoded
+type MatchupType = {
+  periods: string[];
+};
+
+type MatchupsType = {
+  [key: string]: MatchupType;
+};
+const MATCHUPS: MatchupsType = {
+  "1": {
+    periods: ["1", "2", "3", "4", "5", "6"],
+  },
+  "2": {
+    periods: ["7", "8", "9", "10", "11", "12", "13"],
+  },
+  "3": {
+    periods: ["14", "15", "16", "17", "18", "19", "20"],
+  },
+  "4": {
+    periods: ["21", "22", "23", "24", "25", "26", "27"],
+  },
+  "5": {
+    periods: ["28", "29", "30", "31", "32", "33", "34"],
+  },
+  "6": {
+    periods: ["35", "36", "37", "38", "39", "40", "41"],
+  },
+  "7": {
+    periods: ["42", "43", "44", "45", "46", "47", "48"],
+  },
+  "8": {
+    periods: ["49", "50", "51", "52", "53", "54", "55"],
+  },
+  "9": {
+    periods: ["56", "57", "58", "59", "60", "61", "62"],
+  },
+  "10": {
+    periods: ["63", "64", "65", "66", "67", "68", "69"],
+  },
+  "11": {
+    periods: ["70", "71", "72", "73", "74", "75", "76"],
+  },
+  "12": {
+    periods: ["77", "78", "79", "80", "81", "82", "83"],
+  },
+  "13": {
+    periods: ["84", "85", "86", "87", "88", "89", "90"],
+  },
+  "14": {
+    periods: ["91", "92", "93", "94", "95", "96", "97"],
+  },
+  "15": {
+    periods: ["98", "99", "100", "101", "102", "103", "104"],
+  },
+  "16": {
+    periods: ["105", "106", "107", "108", "109", "110", "111"],
+  },
+  "17": {
+    periods: ["112", "113", "114", "115", "116", "117", "118"],
+  },
+  "18": {
+    periods: ["119", "120", "121", "122", "123", "124", "125"],
+  },
+  "19": {
+    periods: [
+      "126",
+      "127",
+      "128",
+      "129",
+      "130",
+      "131",
+      "132",
+      "133",
+      "134",
+      "135",
+      "136",
+      "137",
+      "138",
+      "139",
+      "140",
+      "141",
+      "142",
+      "143",
+      "144",
+      "145",
+      "146",
+    ],
+  },
+  "20": {
+    periods: ["147", "148", "149", "150", "151", "152", "153"],
+  },
+  "21": {
+    periods: ["154", "155", "156", "157", "158", "159", "160"],
+  },
+  "22": {
+    periods: ["161", "162", "163", "164", "165", "166", "167"],
+  },
+  "23": {
+    periods: ["168", "169", "170", "171", "172", "173", "174"],
+  },
+  "24": {
+    periods: ["175", "176", "177", "178", "179", "180", "181"],
+  },
 };
 
 // @note: skaters are tables[0], goalies are tables[1]
@@ -182,35 +282,35 @@ async function getGPView({
   return res.json();
 }
 
-async function getLeagueInfo() {
-  const res = await fetch(
-    `https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=${LEAGUE_ID}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        msgs: [
-          {
-            method: "getLeagueInfo",
-            data: {
-              leagueId: LEAGUE_ID,
-            },
-          },
-        ],
-      }),
-      cache: "no-store",
-    },
-  );
+// async function getLeagueInfo() {
+//   const res = await fetch(
+//     `https://www.fantrax.com/fxea/general/getLeagueInfo?leagueId=${LEAGUE_ID}`,
+//     {
+//       method: "POST",
+//       headers: {
+//         "Content-Type": "application/json",
+//       },
+//       body: JSON.stringify({
+//         msgs: [
+//           {
+//             method: "getLeagueInfo",
+//             data: {
+//               leagueId: LEAGUE_ID,
+//             },
+//           },
+//         ],
+//       }),
+//       cache: "no-store",
+//     },
+//   );
 
-  if (!res.ok) {
-    // This will activate the closest `error.js` Error Boundary
-    throw new Error("Failed to fetch data in getTeamRosterInfo");
-  }
+//   if (!res.ok) {
+//     // This will activate the closest `error.js` Error Boundary
+//     throw new Error("Failed to fetch data in getTeamRosterInfo");
+//   }
 
-  return res.json();
-}
+//   return res.json();
+// }
 
 const getTeamRosterInfoForPeriods = async ({
   teamId,
@@ -226,7 +326,7 @@ const getTeamRosterInfoForPeriods = async ({
 };
 
 // @todo - compile the periods, and pass the periods in, maybe add to route?
-async function getTeamData(teamId: string) {
+async function getTeamData(teamId: string, periods: string[]) {
   const roster = await getTeamRosterInfoForPeriods({
     teamId,
     periods,
@@ -248,31 +348,38 @@ const getTeamGPForPeriods = async ({
   return res; // Here, res is an array of response objects
 };
 
-async function getGP(teamId: string) {
+async function getGP(teamId: string, periods: string[]) {
   // const responses = await getTeamGPForPeriods({ teamId, periods });
   const responses = await getTeamGPForPeriods({ teamId, periods });
   return responses;
 }
 
-export default async function Lineup({ params }: { params: { id: string } }) {
-  const [roster] = await getTeamData(params.id);
+export default async function Lineup({
+  params,
+}: {
+  params: {
+    team: string[];
+  };
+}) {
+  const [id, matchup] = params.team;
+  const matchupToDisplay = matchup ?? "2";
 
-  const defaultScoringPeriod =
-    roster[0]?.responses[0]?.data?.displayedSelections?.displayedScoringPeriod;
+  const periods2 = MATCHUPS[matchupToDisplay].periods;
+
+  const [roster] = await getTeamData(id, periods2);
 
   // @todo: the promises should be combined above
   // this gets the minMax and scoring periods from the roster minMax view
-  const gp = await getGP(params.id);
-  const caps = gp[0].responses[0].data.gamePlayedPerPosData.tableData;
-
-  // log(caps);
+  const gp = await getGP(id, periods2);
+  const caps: CapsType[] =
+    gp[0].responses[0].data.gamePlayedPerPosData.tableData;
 
   // @note these are matchups
-  const scoringPeriods =
-    gp[0].responses[0].data.displayedLists.scoringPeriodList;
+  // const scoringPeriods =
+  //   gp[0].responses[0].data.displayedLists.scoringPeriodList;
 
-  // @nthese are each day, the period 1 here is used in the roster queries as a part of an array
-  const dailyPeriods = roster[0].responses[0].data.displayedLists.periodList;
+  // @note hese are each day, the period 1 here is used in the roster queries as a part of an array
+  // const dailyPeriods = roster[0].responses[0].data.displayedLists.periodList;
 
   // @note this bit gets the table headings
   const periods = roster.map((period) => {
@@ -300,8 +407,8 @@ export default async function Lineup({ params }: { params: { id: string } }) {
 
   return (
     <main className="mt-8">
-      <h2 className="text-2xl font-bold">Counts</h2>
-      <CountTable counts={counts} />
+      <h2 className="text-2xl font-bold">Projected Games Played</h2>
+      <CountTable counts={counts} caps={caps} />
       <h2 className="text-2xl font-bold">Skaters</h2>
       <RosterTable headers={periods} table={players} count={DRESSED_SKATERS} />
       <h2 className="text-2xl font-bold">Goalies</h2>
@@ -319,7 +426,6 @@ function RosterTable({
   table: any;
   count: number;
 }) {
-  // const [period, date] = headers.split(" (");
   return (
     <div className="relative rounded-xl overflow-auto -mx-4">
       <div className="shadow-sm my-8">
@@ -341,8 +447,7 @@ function RosterTable({
           </thead>
           <tbody className="bg-white dark:bg-slate-800">
             {table.map((row: any, index: number) => {
-              // @todo: this bench check will not work great with goalies
-              // isDressed is now in the player object
+              // @note: we count rows here instead of checking at player props because they're too unpredictable
               const isBench = index >= count;
               return (
                 <tr
@@ -418,9 +523,13 @@ function RosterTable({
   );
 }
 
-function CountTable({ counts }: { counts: any }) {
-  // @todo DRY it up
+function CountTable({ counts, caps }: { counts: any; caps: CapsType[] }) {
+  // yuck but workin and it's late
+  // @note: this also has the actual played GP counts in it too
+  const getMinMax = (posShort: "C" | "LW" | "RW" | "D" | "G") =>
+    caps.find((cap) => cap.posShort === posShort);
 
+  // @todo DRY it up
   return (
     <div className="relative rounded-xl overflow-auto -mx-4">
       <div className="shadow-sm my-8">
@@ -449,66 +558,66 @@ function CountTable({ counts }: { counts: any }) {
               <td className="border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200">
                 <span
                   className={
-                    counts[206] > minMax.C
+                    counts[206] > getMinMax("C")!.max
                       ? "text-red-400"
-                      : counts[206] < minMax.C
+                      : counts[206] < getMinMax("C")!.max
                         ? "text-blue-400"
                         : ""
                   }
                 >
-                  {counts[206]} / {minMax.C}
+                  {counts[206]} / {getMinMax("C")!.max}
                 </span>
               </td>
               <td className="border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200">
                 <span
                   className={
-                    counts[203] > minMax.LW
+                    counts[203] > getMinMax("LW")!.max
                       ? "text-red-400"
-                      : counts[203] < minMax.LW
+                      : counts[203] < getMinMax("LW")!.max
                         ? "text-blue-400"
                         : ""
                   }
                 >
-                  {counts[203]} / {minMax.LW}
+                  {counts[203]} / {getMinMax("LW")!.max}
                 </span>
               </td>
               <td className="border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200">
                 <span
                   className={
-                    counts[204] > minMax.RW
+                    counts[204] > getMinMax("RW")!.max
                       ? "text-red-400"
-                      : counts[204] < minMax.RW
+                      : counts[204] < getMinMax("RW")!.max
                         ? "text-blue-400"
                         : ""
                   }
                 >
-                  {counts[204]} / {minMax.RW}
+                  {counts[204]} / {getMinMax("RW")!.max}
                 </span>
               </td>
               <td className="border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200">
                 <span
                   className={
-                    counts[202] > minMax.D
+                    counts[202] > getMinMax("D")!.max
                       ? "text-red-400"
-                      : counts[202] < minMax.D
+                      : counts[202] < getMinMax("D")!.max
                         ? "text-blue-400"
                         : ""
                   }
                 >
-                  {counts[202]} / {minMax.D}
+                  {counts[202]} / {getMinMax("D")!.max}
                 </span>
               </td>
               <td className="border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200">
                 <span
                   className={
-                    counts[201] > minMax.G
+                    counts[201] > getMinMax("G")!.max
                       ? "text-red-400"
-                      : counts[201] < minMax.G
+                      : counts[201] < getMinMax("G")!.max
                         ? "text-blue-400"
                         : ""
                   }
                 >
-                  {counts[201]} / {minMax.G}
+                  {counts[201]} / {getMinMax("G")!.max}
                 </span>
               </td>
             </tr>
