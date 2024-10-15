@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter, usePathname } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 type TeamTempType = {
   id: string;
@@ -9,29 +9,53 @@ type TeamTempType = {
 
 export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
   const router = useRouter();
-  const pathname = usePathname();
-  const activeTeam = pathname.split("/team/").pop();
+  const params = useParams();
+  const activeTeam = params.team?.[0];
+  const activeMatchup = params.team?.[1] || "2";
+
   if (!teams) return null;
 
-  const handleClick = (event: React.ChangeEvent<HTMLSelectElement>) => {
+  const handleTeamClick = (event: React.ChangeEvent<HTMLSelectElement>) => {
     event.preventDefault();
     const teamId = event.target.value;
-    router.push(`/team/${teamId}`);
+    router.push(`/team/${teamId}/${activeMatchup}`);
   };
 
+  const handleMatchupClick = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    event.preventDefault();
+    const matchupId = event.target.value;
+    router.push(`/team/${activeTeam}/${matchupId}`);
+  };
+
+  // @todo these should have the dates
+  const weeks = Array.from({ length: 23 }, (_, i) => (i + 1).toString());
+
   return (
-    <select
-      className="rounded-lg text-black px-2 py-1 bg-slate-200 dark:bg-slate-200"
-      onChange={handleClick}
-      value={activeTeam}
-    >
-      {/* @todo: yuck */}
-      {activeTeam === "/" && <option>Pick a team</option>}
-      {teams.map((team: TeamTempType) => (
-        <option key={team.id} value={team.id}>
-          {team.name}
-        </option>
-      ))}
-    </select>
+    <div className="flex gap-2">
+      <select
+        className="rounded-lg text-black px-2 py-1 bg-slate-200 dark:bg-slate-200"
+        onChange={handleTeamClick}
+        value={activeTeam}
+      >
+        {/* @todo: yuck */}
+        {activeTeam === "/" && <option>Pick a team</option>}
+        {teams.map((team: TeamTempType) => (
+          <option key={team.id} value={team.id}>
+            {team.name}
+          </option>
+        ))}
+      </select>
+      <select
+        className="rounded-lg text-black px-2 py-1 bg-slate-200 dark:bg-slate-200"
+        onChange={handleMatchupClick}
+        value={activeMatchup}
+      >
+        {weeks.map((week: string) => (
+          <option key={week} value={week}>
+            {week}
+          </option>
+        ))}
+      </select>
+    </div>
   );
 };
