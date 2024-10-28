@@ -31,8 +31,6 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
   // @todo these should have the dates
   const weeks = Array.from({ length: 23 }, (_, i) => (i + 1).toString());
 
-  console.log("$$$", activeTeam);
-
   return (
     <div className="flex gap-2">
       <select
