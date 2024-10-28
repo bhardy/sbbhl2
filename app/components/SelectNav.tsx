@@ -11,7 +11,8 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
   const router = useRouter();
   const params = useParams();
   const activeTeam = params.team?.[0];
-  const activeMatchup = params.team?.[1] || "2";
+  // @todo: make this automatic
+  const activeMatchup = params.team?.[1] || "4";
 
   if (!teams) return null;
 

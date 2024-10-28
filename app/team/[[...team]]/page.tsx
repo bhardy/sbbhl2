@@ -243,6 +243,7 @@ async function getTeamRosterInfo({
 
   return res.json();
 }
+
 async function getGPView({
   teamId,
   period,
@@ -362,15 +363,16 @@ export default async function Lineup({
   };
 }) {
   const [id, matchup] = params.team;
-  const matchupToDisplay = matchup ?? "2";
+  // @todo make this automatic
+  const matchupToDisplay = matchup ?? "4";
 
-  const periods2 = MATCHUPS[matchupToDisplay].periods;
+  const matchupPeriods = MATCHUPS[matchupToDisplay].periods;
 
-  const [roster] = await getTeamData(id, periods2);
+  const [roster] = await getTeamData(id, matchupPeriods);
 
   // @todo: the promises should be combined above
   // this gets the minMax and scoring periods from the roster minMax view
-  const gp = await getGP(id, periods2);
+  const gp = await getGP(id, matchupPeriods);
   const caps: CapsType[] =
     gp[0].responses[0].data.gamePlayedPerPosData.tableData;
 
@@ -382,7 +384,7 @@ export default async function Lineup({
   // const dailyPeriods = roster[0].responses[0].data.displayedLists.periodList;
 
   // @note this bit gets the table headings
-  const periods = roster.map((period) => {
+  const periodHeadings = roster.map((period) => {
     // maybe this should be the index
     const periodList = period.responses[0].data.displayedLists.periodList;
     const displayedPeriod =
@@ -410,9 +412,17 @@ export default async function Lineup({
       <h2 className="text-2xl font-bold">Projected Games Played</h2>
       <CountTable counts={counts} caps={caps} />
       <h2 className="text-2xl font-bold">Skaters</h2>
-      <RosterTable headers={periods} table={players} count={DRESSED_SKATERS} />
+      <RosterTable
+        headers={periodHeadings}
+        table={players}
+        count={DRESSED_SKATERS}
+      />
       <h2 className="text-2xl font-bold">Goalies</h2>
-      <RosterTable headers={periods} table={goalies} count={DRESSED_GOALIES} />
+      <RosterTable
+        headers={periodHeadings}
+        table={goalies}
+        count={DRESSED_GOALIES}
+      />
     </main>
   );
 }
