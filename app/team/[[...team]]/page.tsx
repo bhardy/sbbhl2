@@ -449,7 +449,7 @@ function RosterTable({
                     key={header}
                     className="border-b border-slate-300 dark:border-slate-500 font-bold p-4 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left w-48"
                   >
-                    {period} <br /> {date}
+                    {period} <br /> ({date}
                   </th>
                 );
               })}
