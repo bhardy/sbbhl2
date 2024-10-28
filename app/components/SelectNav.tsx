@@ -30,6 +30,8 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
   // @todo these should have the dates
   const weeks = Array.from({ length: 23 }, (_, i) => (i + 1).toString());
 
+  console.log("$$$", activeTeam);
+
   return (
     <div className="flex gap-2">
       <select
@@ -37,8 +39,7 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
         onChange={handleTeamClick}
         value={activeTeam}
       >
-        {/* @todo: yuck */}
-        {activeTeam === "/" && <option>Pick a team</option>}
+        {!activeTeam && <option>Pick a team</option>}
         {teams.map((team: TeamTempType) => (
           <option key={team.id} value={team.id}>
             {team.name}
