@@ -1,4 +1,5 @@
 import { zip } from "lodash-es";
+import { DateTime } from "luxon";
 
 const LEAGUE_ID = "erva93djlwitpx9j";
 
@@ -153,6 +154,48 @@ const MATCHUPS: MatchupsType = {
   "24": {
     periods: ["175", "176", "177", "178", "179", "180", "181"],
   },
+};
+
+const convertToPacific = (time: string, serverDate: string) => {
+  try {
+    // Extract timezone from serverDate (e.g., "EDT" from "8:03 PM EDT")
+    const sourceTimezone = serverDate.split(" ").pop();
+
+    const timezoneMap: Record<string, string> = {
+      EDT: "America/New_York",
+      EST: "America/New_York",
+      CDT: "America/Chicago",
+      CST: "America/Chicago",
+      MDT: "America/Denver",
+      MST: "America/Denver",
+      PDT: "America/Los_Angeles",
+      PST: "America/Los_Angeles",
+    };
+
+    const sourceZone =
+      timezoneMap[sourceTimezone as keyof typeof timezoneMap] ||
+      "America/New_York";
+
+    // Remove the day of week and parse the time
+    const timeWithoutDay = time.split(" ")[1];
+
+    // Parse using the correct format for "7:00PM"
+    const sourceTime = DateTime.fromFormat(timeWithoutDay, "h:mma", {
+      zone: sourceZone,
+    });
+
+    if (!sourceTime.isValid) {
+      console.error("Invalid time format:", time);
+      return time;
+    }
+
+    const pacificTime = sourceTime.setZone("America/Los_Angeles");
+    // You can customize the output format as needed
+    return `${time.split(" ")[0]} ${pacificTime.toFormat("h:mma ZZZZ")}`; // Will return "Fri 4:00PM PDT"
+  } catch (error) {
+    console.error("Error converting time:", error);
+    return time;
+  }
 };
 
 // @note: skaters are tables[0], goalies are tables[1]
@@ -370,6 +413,9 @@ export default async function Lineup({
 
   const [roster] = await getTeamData(id, matchupPeriods);
 
+  // @note: it would be nicer to grab this from the header request but this works for now
+  const serverDate = roster[0]?.data?.sDate;
+
   // @todo: the promises should be combined above
   // this gets the minMax and scoring periods from the roster minMax view
   const gp = await getGP(id, matchupPeriods);
@@ -416,12 +462,14 @@ export default async function Lineup({
         headers={periodHeadings}
         table={players}
         count={DRESSED_SKATERS}
+        serverDate={serverDate}
       />
       <h2 className="text-2xl font-bold">Goalies</h2>
       <RosterTable
         headers={periodHeadings}
         table={goalies}
         count={DRESSED_GOALIES}
+        serverDate={serverDate}
       />
     </main>
   );
@@ -431,10 +479,12 @@ function RosterTable({
   headers,
   table,
   count,
+  serverDate,
 }: {
   headers: any;
   table: any;
   count: number;
+  serverDate: string;
 }) {
   return (
     <div className="relative rounded-xl overflow-auto -mx-4">
@@ -484,6 +534,12 @@ function RosterTable({
                       ? cell.game.split("<br/>")
                       : ["", ""];
 
+                    // @note: time can also be the score for a finished game
+                    const zonedTime =
+                      time && !time.includes("@")
+                        ? convertToPacific(time, serverDate)
+                        : "";
+
                     return (
                       <td
                         key={`${cell.scorerId}-${index}`}
@@ -500,7 +556,7 @@ function RosterTable({
                         </span>{" "}
                         {playsToday && (
                           <span className="text-xs">
-                            {opponent} — {time}
+                            {opponent} — {zonedTime}
                           </span>
                         )}
                         <div className="font-bold">
