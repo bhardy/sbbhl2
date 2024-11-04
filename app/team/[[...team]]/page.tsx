@@ -12,6 +12,9 @@ interface PositionType {
   [key: number]: string;
 }
 
+// @todo pull from api
+const DEFAULT_MATCHUP = "5";
+
 const POSITIONS: PositionType = {
   201: "G",
   206: "C",
@@ -407,7 +410,7 @@ export default async function Lineup({
 }) {
   const [id, matchup] = params.team;
   // @todo make this automatic
-  const matchupToDisplay = matchup ?? "4";
+  const matchupToDisplay = matchup ?? DEFAULT_MATCHUP;
 
   const matchupPeriods = MATCHUPS[matchupToDisplay].periods;
 
