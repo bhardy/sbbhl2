@@ -3,6 +3,8 @@ import { DateTime } from "luxon";
 
 const LEAGUE_ID = "erva93djlwitpx9j";
 
+const LEAGUE_WEEK = process.env.APP_MATCHUP_WEEK?.toString() || "5";
+
 // https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
 // const res = await fetch('https://www.fantrax.com/fxea/general/getPlayerIds?sport=NHL')
@@ -11,9 +13,6 @@ const LEAGUE_ID = "erva93djlwitpx9j";
 interface PositionType {
   [key: number]: string;
 }
-
-// @todo pull from api
-const DEFAULT_MATCHUP = "5";
 
 const POSITIONS: PositionType = {
   201: "G",
@@ -410,8 +409,7 @@ export default async function Lineup({
 }) {
   const [id, matchup] = params.team;
   // @todo make this automatic
-  const matchupToDisplay = matchup ?? DEFAULT_MATCHUP;
-
+  const matchupToDisplay = matchup ?? LEAGUE_WEEK;
   const matchupPeriods = MATCHUPS[matchupToDisplay].periods;
 
   const [roster] = await getTeamData(id, matchupPeriods);
