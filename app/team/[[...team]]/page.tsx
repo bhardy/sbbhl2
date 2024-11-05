@@ -1,9 +1,9 @@
-import { zip } from "lodash-es";
+import { zip, mergeWith, add } from "lodash-es";
 import { DateTime } from "luxon";
 
 const LEAGUE_ID = "erva93djlwitpx9j";
 
-const LEAGUE_WEEK = process.env.APP_MATCHUP_WEEK?.toString() || "5";
+const CURRENT_SCORING_PERIOD = process.env.APP_MATCHUP_WEEK?.toString() || "5";
 
 // https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
@@ -51,6 +51,14 @@ type CapsType = {
   max: number;
   gp: number;
   posShort: string;
+};
+
+type GamesPlayedType = {
+  "201": number;
+  "202": number;
+  "203": number;
+  "204": number;
+  "206": number;
 };
 
 // @this shouldn't be hardcoded
@@ -200,6 +208,27 @@ const convertToPacific = (time: string, serverDate: string) => {
   }
 };
 
+// @note: ugly, this turns minmax into the form the Counts component uses:
+type minMaxType = {
+  min: string;
+  pos: string;
+  max: number;
+  gp: number;
+  posShort: "C" | "LW" | "RW" | "D" | "G";
+}[];
+const formatMinMax = (minMax: minMaxType): GamesPlayedType => {
+  return Object.entries(POSITIONS).reduce<{ [key: string]: number }>(
+    (acc, [key, value]) => {
+      const matchingItem = minMax.find((item) => item.posShort === value);
+      if (matchingItem) {
+        acc[key] = matchingItem.gp;
+      }
+      return acc;
+    },
+    {},
+  ) as GamesPlayedType;
+};
+
 // @note: skaters are tables[0], goalies are tables[1]
 const getPositionTable = (tables: any, tableIndex: number) =>
   tables.reduce(
@@ -209,6 +238,10 @@ const getPositionTable = (tables: any, tableIndex: number) =>
           // @note: we're just guessing that status "1" means "dressed"
           const isDressed = player.statusId === "1";
           const game = player.cells[1].content;
+
+          // @note: very flimsy check to see if the game has started — if it has it'll have a score instead of a start time
+          const hasGameStarted = !!game && !game.includes(":");
+
           if (!!player.posId) {
             const newPlayer = {
               ...player.scorer,
@@ -219,8 +252,11 @@ const getPositionTable = (tables: any, tableIndex: number) =>
             };
             playerAcc.players.push(newPlayer);
 
-            // Increment the count for the current posId only when isDressed is true
-            if (isDressed && game) {
+            // @note only increment the projected count when:
+            //   1. the player is dressed
+            //   2. the player has a game
+            //   3. the game has NOT started (fantrax counts the games played for us in minMax)
+            if (isDressed && game && !hasGameStarted) {
               if (!playerAcc.count[player.posId]) {
                 playerAcc.count[player.posId] = 1;
               } else {
@@ -289,12 +325,12 @@ async function getTeamRosterInfo({
   return res.json();
 }
 
-async function getGPView({
+async function getGamesPlayed({
   teamId,
-  period,
+  scoringPeriod,
 }: {
   teamId: string;
-  period: string;
+  scoringPeriod: string;
 }) {
   const res = await fetch(
     `https://www.fantrax.com/fxpa/req?leagueId=${LEAGUE_ID}`,
@@ -310,7 +346,7 @@ async function getGPView({
             data: {
               leagueId: LEAGUE_ID,
               teamId,
-              period,
+              scoringPeriod,
               view: "GAMES_PER_POS",
             },
           },
@@ -371,33 +407,22 @@ const getTeamRosterInfoForPeriods = async ({
   return res; // Here, res is an array of response objects
 };
 
-// @todo - compile the periods, and pass the periods in, maybe add to route?
-async function getTeamData(teamId: string, periods: string[]) {
+async function getTeamData(
+  teamId: string,
+  periods: string[],
+  scoringPeriod: string,
+) {
   const roster = await getTeamRosterInfoForPeriods({
     teamId,
     periods,
   });
 
-  return [roster];
-}
+  const minMax = await getGamesPlayed({
+    teamId,
+    scoringPeriod,
+  });
 
-const getTeamGPForPeriods = async ({
-  teamId,
-  periods,
-}: {
-  teamId: string;
-  periods: string[];
-}) => {
-  const res = await Promise.all(
-    periods.map((period) => getGPView({ teamId, period })),
-  );
-  return res; // Here, res is an array of response objects
-};
-
-async function getGP(teamId: string, periods: string[]) {
-  // const responses = await getTeamGPForPeriods({ teamId, periods });
-  const responses = await getTeamGPForPeriods({ teamId, periods });
-  return responses;
+  return [roster, minMax];
 }
 
 export default async function Lineup({
@@ -409,19 +434,24 @@ export default async function Lineup({
 }) {
   const [id, matchup] = params.team;
   // @todo make this automatic
-  const matchupToDisplay = matchup ?? LEAGUE_WEEK;
-  const matchupPeriods = MATCHUPS[matchupToDisplay].periods;
+  const scoringPeriodToDisplay = matchup ?? CURRENT_SCORING_PERIOD;
+  const matchupPeriods = MATCHUPS[scoringPeriodToDisplay].periods;
 
-  const [roster] = await getTeamData(id, matchupPeriods);
+  const [roster, minMax] = await getTeamData(
+    id,
+    matchupPeriods,
+    scoringPeriodToDisplay,
+  );
 
   // @note: it would be nicer to grab this from the header request but this works for now
   const serverDate = roster[0]?.data?.sDate;
 
   // @todo: the promises should be combined above
   // this gets the minMax and scoring periods from the roster minMax view
-  const gp = await getGP(id, matchupPeriods);
+  // const gp = await getGP(id, matchupPeriods);
+
   const caps: CapsType[] =
-    gp[0].responses[0].data.gamePlayedPerPosData.tableData;
+    minMax.responses[0].data.gamePlayedPerPosData.tableData;
 
   // @note these are matchups
   // const scoringPeriods =
@@ -431,7 +461,8 @@ export default async function Lineup({
   // const dailyPeriods = roster[0].responses[0].data.displayedLists.periodList;
 
   // @note this bit gets the table headings
-  const periodHeadings = roster.map((period) => {
+  //
+  const periodHeadings = roster.map((period: any) => {
     // maybe this should be the index
     const periodList = period.responses[0].data.displayedLists.periodList;
     const displayedPeriod =
@@ -440,7 +471,9 @@ export default async function Lineup({
   });
 
   // @note this bit gets each period (day)'s table
-  const tables = roster.map((res) => res.responses.map((p: any) => p.data));
+  const tables = roster.map((res: any) =>
+    res.responses.map((p: any) => p.data),
+  );
 
   // @note this bit gets the players from each period
   // @note first array (map) is the period, period[1] is empty, tables[1] is goalies
@@ -452,12 +485,15 @@ export default async function Lineup({
   const players = zip(...playersTable.players);
   const goalies = zip(...goaliesTable.players);
 
-  const counts = { ...playersTable.count, ...goaliesTable.count };
+  const projected = { ...playersTable.count, ...goaliesTable.count };
+
+  const gp = minMax.responses[0].data.gamePlayedPerPosData.tableData;
+  const counts = formatMinMax(gp);
 
   return (
     <main className="mt-8">
       <h2 className="text-2xl font-bold">Projected Games Played</h2>
-      <CountTable counts={counts} caps={caps} />
+      <CountTable projected={projected} counts={counts} caps={caps} />
       <h2 className="text-2xl font-bold">Skaters</h2>
       <RosterTable
         headers={periodHeadings}
@@ -531,14 +567,23 @@ function RosterTable({
                       );
                     }
                     const playsToday = !!cell.game;
-                    const [opponent, time] = playsToday
-                      ? cell.game.split("<br/>")
-                      : ["", ""];
+                    // @note: games that have started don't have their, instead show the score
+                    const hasGameStarted = !cell.game?.includes(":");
+                    let opponent = null;
+                    let time = null;
+
+                    if (playsToday) {
+                      if (hasGameStarted) {
+                        opponent = cell.game.replace("<br/>", " - ");
+                      } else {
+                        [opponent, time] = cell.game.split("<br/>");
+                      }
+                    }
 
                     // @note: time can also be the score for a finished game
                     const zonedTime =
                       time && !time.includes("@")
-                        ? convertToPacific(time, serverDate)
+                        ? `— ${convertToPacific(time, serverDate)}`
                         : "";
 
                     return (
@@ -557,7 +602,7 @@ function RosterTable({
                         </span>{" "}
                         {playsToday && (
                           <span className="text-xs">
-                            {opponent} — {zonedTime}
+                            {opponent} {zonedTime}
                           </span>
                         )}
                         <div className="font-bold">
@@ -590,11 +635,21 @@ function RosterTable({
   );
 }
 
-function CountTable({ counts, caps }: { counts: any; caps: CapsType[] }) {
+function CountTable({
+  counts,
+  projected,
+  caps,
+}: {
+  counts: GamesPlayedType;
+  projected: GamesPlayedType;
+  caps: CapsType[];
+}) {
   // yuck but workin and it's late
   // @note: this also has the actual played GP counts in it too
   const getMinMax = (posShort: "C" | "LW" | "RW" | "D" | "G") =>
     caps.find((cap) => cap.posShort === posShort);
+
+  const totals = mergeWith({}, counts, projected, add);
 
   // @todo DRY it up
   return (
@@ -625,66 +680,66 @@ function CountTable({ counts, caps }: { counts: any; caps: CapsType[] }) {
               <td className="border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200">
                 <span
                   className={
-                    counts[206] > getMinMax("C")!.max
+                    totals[206] > getMinMax("C")!.max
                       ? "text-red-400"
-                      : counts[206] < getMinMax("C")!.max
+                      : totals[206] < getMinMax("C")!.max
                         ? "text-blue-400"
                         : ""
                   }
                 >
-                  {counts[206]} / {getMinMax("C")!.max}
+                  {totals[206]} / {getMinMax("C")!.max}
                 </span>
               </td>
               <td className="border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200">
                 <span
                   className={
-                    counts[203] > getMinMax("LW")!.max
+                    totals[203] > getMinMax("LW")!.max
                       ? "text-red-400"
-                      : counts[203] < getMinMax("LW")!.max
+                      : totals[203] < getMinMax("LW")!.max
                         ? "text-blue-400"
                         : ""
                   }
                 >
-                  {counts[203]} / {getMinMax("LW")!.max}
+                  {totals[203]} / {getMinMax("LW")!.max}
                 </span>
               </td>
               <td className="border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200">
                 <span
                   className={
-                    counts[204] > getMinMax("RW")!.max
+                    totals[204] > getMinMax("RW")!.max
                       ? "text-red-400"
-                      : counts[204] < getMinMax("RW")!.max
+                      : totals[204] < getMinMax("RW")!.max
                         ? "text-blue-400"
                         : ""
                   }
                 >
-                  {counts[204]} / {getMinMax("RW")!.max}
+                  {totals[204]} / {getMinMax("RW")!.max}
                 </span>
               </td>
               <td className="border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200">
                 <span
                   className={
-                    counts[202] > getMinMax("D")!.max
+                    totals[202] > getMinMax("D")!.max
                       ? "text-red-400"
-                      : counts[202] < getMinMax("D")!.max
+                      : totals[202] < getMinMax("D")!.max
                         ? "text-blue-400"
                         : ""
                   }
                 >
-                  {counts[202]} / {getMinMax("D")!.max}
+                  {totals[202]} / {getMinMax("D")!.max}
                 </span>
               </td>
               <td className="border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200">
                 <span
                   className={
-                    counts[201] > getMinMax("G")!.max
+                    totals[201] > getMinMax("G")!.max
                       ? "text-red-400"
-                      : counts[201] < getMinMax("G")!.max
+                      : totals[201] < getMinMax("G")!.max
                         ? "text-blue-400"
                         : ""
                   }
                 >
-                  {counts[201]} / {getMinMax("G")!.max}
+                  {totals[201]} / {getMinMax("G")!.max}
                 </span>
               </td>
             </tr>
