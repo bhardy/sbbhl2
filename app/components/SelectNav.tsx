@@ -2,7 +2,7 @@
 
 import { useRouter, useParams } from "next/navigation";
 
-const LEAGUE_WEEK = process.env.APP_MATCHUP_WEEK?.toString() || "5";
+const CURRENT_SCORING_PERIOD = process.env.APP_MATCHUP_WEEK?.toString() || "5";
 
 type TeamTempType = {
   id: string;
@@ -14,7 +14,7 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
   const params = useParams();
   const activeTeam = params.team?.[0];
   // @todo: make this automatic
-  const activeMatchup = params.team?.[1] || LEAGUE_WEEK;
+  const activeMatchup = params.team?.[1] || CURRENT_SCORING_PERIOD;
 
   if (!teams) return null;
 
