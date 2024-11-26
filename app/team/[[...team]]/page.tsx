@@ -3,7 +3,8 @@ import { DateTime } from "luxon";
 
 const LEAGUE_ID = "erva93djlwitpx9j";
 
-const CURRENT_SCORING_PERIOD = process.env.APP_MATCHUP_WEEK?.toString() || "5";
+const CURRENT_SCORING_PERIOD =
+  process.env.NEXT_PUBLIC_APP_MATCHUP_WEEK?.toString();
 
 // https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
