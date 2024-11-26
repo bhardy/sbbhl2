@@ -2,7 +2,8 @@
 
 import { useRouter, useParams } from "next/navigation";
 
-const CURRENT_SCORING_PERIOD = process.env.APP_MATCHUP_WEEK?.toString() || "5";
+const CURRENT_SCORING_PERIOD =
+  process.env.NEXT_PUBLIC_APP_MATCHUP_WEEK?.toString();
 
 type TeamTempType = {
   id: string;
@@ -31,7 +32,7 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
   };
 
   // @todo these should have the dates
-  const weeks = Array.from({ length: 23 }, (_, i) => (i + 1).toString());
+  const weeks = Array.from({ length: 24 }, (_, i) => (i + 1).toString());
 
   return (
     <div className="flex gap-2">
@@ -51,6 +52,7 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
         className="rounded-lg text-black px-2 py-1 bg-slate-200 dark:bg-slate-200"
         onChange={handleMatchupClick}
         value={activeMatchup}
+        disabled={!activeTeam}
       >
         {weeks.map((week: string) => (
           <option key={week} value={week}>
