@@ -4,6 +4,9 @@ import { SelectNav } from "./components/SelectNav";
 import { Refresh } from "./components/Refresh";
 import "./globals.css";
 
+const LEAGUE_ID = '1of9qqosmafokzoq'
+// const LEAGUE_ID = 'erva93djlwitpx9j'
+
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",
   variable: "--font-geist-sans",
@@ -22,7 +25,7 @@ export const metadata: Metadata = {
 
 async function getTeams() {
   const res = await fetch(
-    "https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j",
+    `https://www.fantrax.com/fxpa/req?leagueId=${LEAGUE_ID}`,
     {
       method: "POST",
       // mode: "cors",
@@ -37,7 +40,7 @@ async function getTeams() {
           {
             method: "getTeamRosterInfo",
             data: {
-              leagueId: "erva93djlwitpx9j",
+              leagueId: LEAGUE_ID,
             },
           },
         ],

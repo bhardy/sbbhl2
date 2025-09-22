@@ -1,7 +1,7 @@
 import { zip, mergeWith, add } from "lodash-es";
 import { DateTime } from "luxon";
 
-const LEAGUE_ID = "erva93djlwitpx9j";
+const LEAGUE_ID = '1of9qqosmafokzoq'
 
 const CURRENT_SCORING_PERIOD =
   process.env.NEXT_PUBLIC_APP_MATCHUP_WEEK?.toString();
@@ -43,7 +43,7 @@ const POSITION_TEXT_COLORS: PositionColorType = {
   202: "text-green-500",
 };
 
-const DRESSED_GOALIES = 2;
+const DRESSED_GOALIES = 3;
 const DRESSED_SKATERS = 13;
 
 type CapsType = {
@@ -167,8 +167,37 @@ const MATCHUPS: MatchupsType = {
   },
 };
 
-const convertToPacific = (time: string, serverDate: string) => {
+const convertToPacific = (time: string, serverDate: string | number) => {
   try {
+    // Handle case where serverDate is a timestamp number
+    if (typeof serverDate === 'number') {
+      // Convert timestamp to a date and use a default timezone
+      // Since we don't know the original timezone from the timestamp, use Eastern as default
+      const sourceZone = "America/New_York";
+      
+      // Remove the day of week and parse the time
+      const timeWithoutDay = time.split(" ")[1];
+      
+      // Parse using the correct format for "7:00PM"
+      const sourceTime = DateTime.fromFormat(timeWithoutDay, "h:mma", {
+        zone: sourceZone,
+      });
+      
+      if (!sourceTime.isValid) {
+        console.error("Invalid time format:", time);
+        return time;
+      }
+      
+      const pacificTime = sourceTime.setZone("America/Los_Angeles");
+      return `${time.split(" ")[0]} ${pacificTime.toFormat("h:mma ZZZZ")}`;
+    }
+    
+    // Handle case where serverDate is not a string or is undefined
+    if (!serverDate || typeof serverDate !== 'string') {
+      console.warn("Invalid serverDate:", serverDate);
+      return time;
+    }
+    
     // Extract timezone from serverDate (e.g., "EDT" from "8:03 PM EDT")
     const sourceTimezone = serverDate.split(" ").pop();
 
@@ -458,7 +487,7 @@ export default async function Lineup({
   // const scoringPeriods =
   //   gp[0].responses[0].data.displayedLists.scoringPeriodList;
 
-  // @note hese are each day, the period 1 here is used in the roster queries as a part of an array
+  // @note these are each day, the period 1 here is used in the roster queries as a part of an array
   // const dailyPeriods = roster[0].responses[0].data.displayedLists.periodList;
 
   // @note this bit gets the table headings
