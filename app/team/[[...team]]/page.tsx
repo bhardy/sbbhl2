@@ -165,6 +165,7 @@ const getPositionTable = (tables: any, tableIndex: number) =>
         (playerAcc: any, player: any) => {
           // @note: we're just guessing that status "1" means "dressed"
           const isDressed = player.statusId === "1";
+          const isMinors = player.statusId === "9";
           const game = player.cells[1].content;
 
           // @note: very flimsy check to see if the game has started — if it has it'll have a score instead of a start time
@@ -176,7 +177,7 @@ const getPositionTable = (tables: any, tableIndex: number) =>
               posId: player.posId,
               game,
               isDressed,
-              // @todo consider adding bench/minors status
+              isMinors,
             };
             playerAcc.players.push(newPlayer);
 
@@ -355,15 +356,20 @@ async function getTeamData(
 
 export default async function Lineup({
   params,
+  searchParams,
 }: {
   params: {
     team: string[];
   };
+  searchParams: { [key: string]: string | string[] | undefined };
 }) {
   const [id, matchup] = params.team;
   // @todo make this automatic
   const scoringPeriodToDisplay = matchup ?? CURRENT_SCORING_PERIOD;
   const matchupPeriods = MATCHUPS[scoringPeriodToDisplay].periods;
+  
+  // Get the showMinors parameter from URL
+  const showMinors = searchParams.showMinors === 'true';
 
   const [roster, minMax] = await getTeamData(
     id,
@@ -409,9 +415,28 @@ export default async function Lineup({
   const goaliesTable = getPositionTable(tables, 1);
 
   // @note this transposes the table
-  // @todo: add goalies
   const players = zip(...playersTable.players);
   const goalies = zip(...goaliesTable.players);
+
+  // Helper function to filter out minor players and compress table
+  const filterMinorPlayers = (table: any[]) => {
+    return table.map((row: any) => {
+      // Filter out minor players from this row
+      const nonMinorPlayers = row.filter((cell: any) => !cell || !cell.isMinors);
+      // Pad with nulls to maintain row length if needed
+      while (nonMinorPlayers.length < row.length) {
+        nonMinorPlayers.push(null);
+      }
+      return nonMinorPlayers;
+    }).filter((row: any) => 
+      // Remove rows that are completely empty (all nulls)
+      row.some((cell: any) => cell !== null)
+    );
+  };
+
+  // Filter out minor players if showMinors is false
+  const filteredPlayers = showMinors ? players : filterMinorPlayers(players);
+  const filteredGoalies = showMinors ? goalies : filterMinorPlayers(goalies);
 
   const projected = { ...playersTable.count, ...goaliesTable.count };
 
@@ -425,14 +450,14 @@ export default async function Lineup({
       <h2 className="text-2xl font-bold">Skaters</h2>
       <RosterTable
         headers={periodHeadings}
-        table={players}
+        table={filteredPlayers}
         count={DRESSED_SKATERS}
         serverDate={serverDate}
       />
       <h2 className="text-2xl font-bold">Goalies</h2>
       <RosterTable
         headers={periodHeadings}
-        table={goalies}
+        table={filteredGoalies}
         count={DRESSED_GOALIES}
         serverDate={serverDate}
       />
