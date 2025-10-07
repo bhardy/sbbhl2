@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import localFont from "next/font/local";
 import { SelectNav } from "./components/SelectNav";
 import { Refresh } from "./components/Refresh";
+import { Suspense } from "react";
 import "./globals.css";
 
 const LEAGUE_ID = '1of9qqosmafokzoq'
@@ -65,7 +66,9 @@ export default async function RootLayout({
         <div className="max-w-8xl mx-auto sm:px-6 md:px-8">
           <nav className="flex flex-col gap-2 items-start">
             <h1 className="text-3xl font-bold">SBBHL Lineup Helper</h1>
-            <SelectNav teams={teams} />
+            <Suspense fallback={<div>Loading navigation...</div>}>
+              <SelectNav teams={teams} />
+            </Suspense>
             <Refresh />
           </nav>
           {children}
