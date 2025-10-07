@@ -1,12 +1,13 @@
 import { zip, mergeWith, add } from "lodash-es";
 import { DateTime } from "luxon";
+import { MATCHUPS } from "../../constants/matchups";
 
 const LEAGUE_ID = '1of9qqosmafokzoq'
 
 const CURRENT_SCORING_PERIOD =
   process.env.NEXT_PUBLIC_APP_MATCHUP_WEEK?.toString();
 
-// https://www.fantrax.com/fxpa/req?leagueId=erva93djlwitpx9j
+// https://www.fantrax.com/fxpa/req?leagueId=1of9qqosmafokzoq
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
 // const res = await fetch('https://www.fantrax.com/fxea/general/getPlayerIds?sport=NHL')
 
@@ -62,110 +63,7 @@ type GamesPlayedType = {
   "206": number;
 };
 
-// @this shouldn't be hardcoded
-type MatchupType = {
-  periods: string[];
-};
-
-type MatchupsType = {
-  [key: string]: MatchupType;
-};
-const MATCHUPS: MatchupsType = {
-  "1": {
-    periods: ["1", "2", "3", "4", "5", "6"],
-  },
-  "2": {
-    periods: ["7", "8", "9", "10", "11", "12", "13"],
-  },
-  "3": {
-    periods: ["14", "15", "16", "17", "18", "19", "20"],
-  },
-  "4": {
-    periods: ["21", "22", "23", "24", "25", "26", "27"],
-  },
-  "5": {
-    periods: ["28", "29", "30", "31", "32", "33", "34"],
-  },
-  "6": {
-    periods: ["35", "36", "37", "38", "39", "40", "41"],
-  },
-  "7": {
-    periods: ["42", "43", "44", "45", "46", "47", "48"],
-  },
-  "8": {
-    periods: ["49", "50", "51", "52", "53", "54", "55"],
-  },
-  "9": {
-    periods: ["56", "57", "58", "59", "60", "61", "62"],
-  },
-  "10": {
-    periods: ["63", "64", "65", "66", "67", "68", "69"],
-  },
-  "11": {
-    periods: ["70", "71", "72", "73", "74", "75", "76"],
-  },
-  "12": {
-    periods: ["77", "78", "79", "80", "81", "82", "83"],
-  },
-  "13": {
-    periods: ["84", "85", "86", "87", "88", "89", "90"],
-  },
-  "14": {
-    periods: ["91", "92", "93", "94", "95", "96", "97"],
-  },
-  "15": {
-    periods: ["98", "99", "100", "101", "102", "103", "104"],
-  },
-  "16": {
-    periods: ["105", "106", "107", "108", "109", "110", "111"],
-  },
-  "17": {
-    periods: ["112", "113", "114", "115", "116", "117", "118"],
-  },
-  "18": {
-    periods: ["119", "120", "121", "122", "123", "124", "125"],
-  },
-  "19": {
-    periods: [
-      "126",
-      "127",
-      "128",
-      "129",
-      "130",
-      "131",
-      "132",
-      "133",
-      "134",
-      "135",
-      "136",
-      "137",
-      "138",
-      "139",
-      "140",
-      "141",
-      "142",
-      "143",
-      "144",
-      "145",
-      "146",
-    ],
-  },
-  "20": {
-    periods: ["147", "148", "149", "150", "151", "152", "153"],
-  },
-  "21": {
-    periods: ["154", "155", "156", "157", "158", "159", "160"],
-  },
-  "22": {
-    periods: ["161", "162", "163", "164", "165", "166", "167"],
-  },
-  "23": {
-    periods: ["168", "169", "170", "171", "172", "173", "174"],
-  },
-  "24": {
-    periods: ["175", "176", "177", "178", "179", "180", "181"],
-  },
-};
+// @note: MATCHUPS is now imported from constants/matchups.ts
 
 const convertToPacific = (time: string, serverDate: string | number) => {
   try {
