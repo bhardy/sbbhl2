@@ -1,6 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from "next/navigation";
+import { getMatchupDateRange } from "../constants/matchups";
 
 const CURRENT_SCORING_PERIOD =
   process.env.NEXT_PUBLIC_APP_MATCHUP_WEEK?.toString();
@@ -31,7 +32,7 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
     router.push(`/team/${activeTeam}/${matchupId}`);
   };
 
-  // @todo these should have the dates
+  // Generate weeks with date ranges
   const weeks = Array.from({ length: 24 }, (_, i) => (i + 1).toString());
 
   return (
@@ -40,6 +41,7 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
         className="rounded-lg text-black px-2 py-1 bg-slate-200 dark:bg-slate-200"
         onChange={handleTeamClick}
         value={activeTeam}
+        name="team"
       >
         {!activeTeam && <option>Pick a team</option>}
         {teams.map((team: TeamTempType) => (
@@ -53,10 +55,11 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
         onChange={handleMatchupClick}
         value={activeMatchup}
         disabled={!activeTeam}
+        name="period"
       >
         {weeks.map((week: string) => (
           <option key={week} value={week}>
-            {week}
+            {getMatchupDateRange(week)}
           </option>
         ))}
       </select>
