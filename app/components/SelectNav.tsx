@@ -31,26 +31,39 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
 
   if (!teams) return null;
 
+  const buildUrl = (teamId: string, matchupId: string) => {
+    const params = new URLSearchParams();
+    if (showMinors) params.set('showMinors', 'true');
+    const queryString = params.toString();
+    return `/team/${teamId}/${matchupId}${queryString ? `?${queryString}` : ''}`;
+  };
+
   const handleTeamClick = (event: React.ChangeEvent<HTMLSelectElement>) => {
     event.preventDefault();
     const teamId = event.target.value;
-    const url = `/team/${teamId}/${activeMatchup}${showMinors ? '?showMinors=true' : ''}`;
+    const url = buildUrl(teamId, activeMatchup || '');
     router.push(url);
   };
 
   const handleMatchupClick = (event: React.ChangeEvent<HTMLSelectElement>) => {
     event.preventDefault();
     const matchupId = event.target.value;
-    const url = `/team/${activeTeam}/${matchupId}${showMinors ? '?showMinors=true' : ''}`;
+    const url = buildUrl(activeTeam || '', matchupId);
     router.push(url);
   };
 
   const handleMinorsToggle = (event: React.ChangeEvent<HTMLInputElement>) => {
     const newShowMinors = event.target.checked;
     setShowMinors(newShowMinors);
-    const url = `/team/${activeTeam}/${activeMatchup}${newShowMinors ? '?showMinors=true' : ''}`;
+    
+    // Build URL with the new state value
+    const params = new URLSearchParams();
+    if (newShowMinors) params.set('showMinors', 'true');
+    const queryString = params.toString();
+    const url = `/team/${activeTeam || ''}/${activeMatchup || ''}${queryString ? `?${queryString}` : ''}`;
     router.push(url);
   };
+
 
   // Generate weeks with date ranges
   const weeks = Array.from({ length: 24 }, (_, i) => (i + 1).toString());
