@@ -368,7 +368,7 @@ export default async function Lineup({
   const scoringPeriodToDisplay = matchup ?? CURRENT_SCORING_PERIOD;
   const matchupPeriods = MATCHUPS[scoringPeriodToDisplay].periods;
   
-  // Get the showMinors parameter from URL
+  // Get the toggle parameters from URL
   const showMinors = searchParams.showMinors === 'true';
 
   const [roster, minMax] = await getTeamData(
@@ -418,25 +418,9 @@ export default async function Lineup({
   const players = zip(...playersTable.players);
   const goalies = zip(...goaliesTable.players);
 
-  // Helper function to filter out minor players and compress table
-  const filterMinorPlayers = (table: any[]) => {
-    return table.map((row: any) => {
-      // Filter out minor players from this row
-      const nonMinorPlayers = row.filter((cell: any) => !cell || !cell.isMinors);
-      // Pad with nulls to maintain row length if needed
-      while (nonMinorPlayers.length < row.length) {
-        nonMinorPlayers.push(null);
-      }
-      return nonMinorPlayers;
-    }).filter((row: any) => 
-      // Remove rows that are completely empty (all nulls)
-      row.some((cell: any) => cell !== null)
-    );
-  };
-
-  // Filter out minor players if showMinors is false
-  const filteredPlayers = showMinors ? players : filterMinorPlayers(players);
-  const filteredGoalies = showMinors ? goalies : filterMinorPlayers(goalies);
+  // No filtering needed - we'll handle styling in the component
+  const filteredPlayers = players;
+  const filteredGoalies = goalies;
 
   const projected = { ...playersTable.count, ...goaliesTable.count };
 
@@ -453,6 +437,7 @@ export default async function Lineup({
         table={filteredPlayers}
         count={DRESSED_SKATERS}
         serverDate={serverDate}
+        showMinors={showMinors}
       />
       <h2 className="text-2xl font-bold">Goalies</h2>
       <RosterTable
@@ -460,6 +445,7 @@ export default async function Lineup({
         table={filteredGoalies}
         count={DRESSED_GOALIES}
         serverDate={serverDate}
+        showMinors={showMinors}
       />
     </main>
   );
@@ -470,11 +456,13 @@ function RosterTable({
   table,
   count,
   serverDate,
+  showMinors,
 }: {
   headers: any;
   table: any;
   count: number;
   serverDate: string;
+  showMinors: boolean;
 }) {
   return (
     <div className="relative rounded-xl overflow-auto -mx-4">
@@ -539,21 +527,34 @@ function RosterTable({
                         ? `— ${convertToPacific(time, serverDate)}`
                         : "";
 
+                    // Determine if player should be greyed out
+                    const isGreyedOut = cell.isMinors && !showMinors;
+                    const effectivePlaysToday = playsToday && !isGreyedOut;
+
                     return (
                       <td
                         key={`${cell.scorerId}-${index}`}
                         className={`border-b border-slate-200 dark:border-slate-700 align-top p-4 ${
-                          playsToday
+                          effectivePlaysToday
                             ? "text-slate-700 dark:text-slate-200"
                             : "text-slate-500 dark:text-slate-400"
                         }`}
                       >
                         <span
-                          className={`py-0 px-1 rounded-sm ${playsToday ? `${POSITION_COLORS[cell.posId]} text-slate-100` : "bg-slate-200 text-slate-400 dark:bg-slate-500 dark:text-slate-300"}`}
+                          className={`py-0 px-1 rounded-sm ${effectivePlaysToday ? `${POSITION_COLORS[cell.posId]} text-slate-100` : "bg-slate-200 text-slate-400 dark:bg-slate-500 dark:text-slate-300"}`}
                         >
                           {POSITIONS[cell.posId]}
-                        </span>{" "}
-                        {playsToday && (
+                        </span>
+                        {cell.isMinors && (
+                          <span className={`ml-1 text-xs px-1 py-0.5 rounded ${
+                            showMinors 
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                              : "bg-slate-200 text-slate-400 dark:bg-slate-500 dark:text-slate-300"
+                          }`}>
+                            M
+                          </span>
+                        )}{" "}
+                        {effectivePlaysToday && (
                           <span className="text-xs">
                             {opponent} {zonedTime}
                           </span>
@@ -565,7 +566,7 @@ function RosterTable({
                               return (
                                 <span
                                   key={pos}
-                                  className={`${playsToday ? POSITION_TEXT_COLORS[pos] : "text-slate-400 dark:text-slate-400"} text-xs`}
+                                  className={`${effectivePlaysToday ? POSITION_TEXT_COLORS[pos] : "text-slate-400 dark:text-slate-400"} text-xs`}
                                 >
                                   {POSITIONS[pos]}
                                   {index !== cell.posIds.length - 1 && ", "}
