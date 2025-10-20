@@ -105,17 +105,30 @@ export const MATCHUPS: MatchupsType = {
 };
 
 // Generate period dates programmatically
-// Season starts October 7, 2025 (period 1)
-const SEASON_START_DATE = new Date(2025, 9, 7); // Month is 0-indexed, so 9 = October
+// Season starts October 7, 2025 (period 1) - using UTC for consistency
+const SEASON_START_DATE = new Date(Date.UTC(2025, 9, 7)); // Month is 0-indexed, so 9 = October
+
+// Helper function to get the actual Date object for a period (UTC)
+const getPeriodDateObject = (periodNumber: number): Date => {
+  const date = new Date(SEASON_START_DATE);
+  date.setUTCDate(date.getUTCDate() + (periodNumber - 1)); // Subtract 1 because period 1 is the start date
+  return date;
+};
+
+// Helper function to get current UTC date (works consistently on client and server)
+const getCurrentUTCDate = (): Date => {
+  const now = new Date();
+  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+};
 
 export const getPeriodDate = (periodNumber: number): string => {
-  const date = new Date(SEASON_START_DATE);
-  date.setDate(date.getDate() + (periodNumber - 1)); // Subtract 1 because period 1 is the start date
+  const date = getPeriodDateObject(periodNumber);
   
   const options: Intl.DateTimeFormatOptions = {
     weekday: 'short',
     month: 'short',
-    day: 'numeric'
+    day: 'numeric',
+    timeZone: 'UTC' // Force UTC formatting for consistency
   };
   
   return date.toLocaleDateString('en-US', options);
@@ -141,23 +154,21 @@ export const getMatchupDateRange = (matchupId: string): string => {
 
 // Helper function to calculate current week based on today's date
 export const getCurrentWeek = (): string => {
-  const today = new Date();
-  // Normalize today to just the date part (remove time)
-  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayUTC = getCurrentUTCDate();
   
   // Find which matchup week contains today's date
   for (const [weekId, matchup] of Object.entries(MATCHUPS)) {
+    if (!matchup || !matchup.periods.length) continue;
+    
     const firstPeriod = parseInt(matchup.periods[0]);
     const lastPeriod = parseInt(matchup.periods[matchup.periods.length - 1]);
     
-    const firstDate = new Date(SEASON_START_DATE);
-    firstDate.setDate(firstDate.getDate() + (firstPeriod - 1));
-    
-    const lastDate = new Date(SEASON_START_DATE);
-    lastDate.setDate(lastDate.getDate() + (lastPeriod - 1));
+    // Use the shared helper function to get date objects
+    const firstDate = getPeriodDateObject(firstPeriod);
+    const lastDate = getPeriodDateObject(lastPeriod);
     
     // Check if today falls within this week's date range
-    if (todayDate >= firstDate && todayDate <= lastDate) {
+    if (todayUTC >= firstDate && todayUTC <= lastDate) {
       return weekId;
     }
   }
