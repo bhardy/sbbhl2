@@ -138,3 +138,30 @@ export const getMatchupDateRange = (matchupId: string): string => {
   
   return `${matchupId} (${firstMonthDay} - ${lastMonthDay})`;
 };
+
+// Helper function to calculate current week based on today's date
+export const getCurrentWeek = (): string => {
+  const today = new Date();
+  // Normalize today to just the date part (remove time)
+  const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  
+  // Find which matchup week contains today's date
+  for (const [weekId, matchup] of Object.entries(MATCHUPS)) {
+    const firstPeriod = parseInt(matchup.periods[0]);
+    const lastPeriod = parseInt(matchup.periods[matchup.periods.length - 1]);
+    
+    const firstDate = new Date(SEASON_START_DATE);
+    firstDate.setDate(firstDate.getDate() + (firstPeriod - 1));
+    
+    const lastDate = new Date(SEASON_START_DATE);
+    lastDate.setDate(lastDate.getDate() + (lastPeriod - 1));
+    
+    // Check if today falls within this week's date range
+    if (todayDate >= firstDate && todayDate <= lastDate) {
+      return weekId;
+    }
+  }
+  
+  // If no week is found, return the first week as fallback
+  return "1";
+};

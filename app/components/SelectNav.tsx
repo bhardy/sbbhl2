@@ -1,11 +1,8 @@
 "use client";
 
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { getMatchupDateRange } from "../constants/matchups";
+import { getMatchupDateRange, getCurrentWeek } from "../constants/matchups";
 import { useState, useEffect } from "react";
-
-const CURRENT_SCORING_PERIOD =
-  process.env.NEXT_PUBLIC_APP_MATCHUP_WEEK?.toString();
 
 type TeamTempType = {
   id: string;
@@ -18,7 +15,7 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
   const searchParams = useSearchParams();
   const activeTeam = params.team?.[0];
   // @todo: make this automatic
-  const activeMatchup = params.team?.[1] || CURRENT_SCORING_PERIOD;
+  const activeMatchup = params.team?.[1] || getCurrentWeek();
   
   // State for minors toggle - defaults to false (hide minors)
   const [showMinors, setShowMinors] = useState(false);
