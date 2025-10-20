@@ -547,7 +547,11 @@ function RosterTable({
                           {POSITIONS[cell.posId]}
                         </span>
                         {cell.isMinors && (
-                          <span className="ml-2 py-0 px-0.5 rounded-sm text-xs font-bold text-green-600 dark:text-green-400 border border-green-600 dark:border-green-400">
+                          <span className={`ml-2 py-0 px-0.5 rounded-sm text-xs font-bold ${
+                            effectivePlaysToday
+                              ? "text-green-600 dark:text-green-400 border border-green-600 dark:border-green-400"
+                              : "text-slate-400 dark:text-slate-400 border border-slate-400 dark:border-slate-400"
+                          }`}>
                             M
                           </span>
                         )}{" "}
