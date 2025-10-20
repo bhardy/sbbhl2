@@ -1,11 +1,8 @@
 import { zip, mergeWith, add } from "lodash-es";
 import { DateTime } from "luxon";
-import { MATCHUPS } from "../../constants/matchups";
+import { MATCHUPS, getCurrentWeek } from "../../constants/matchups";
 
 const LEAGUE_ID = '1of9qqosmafokzoq'
-
-const CURRENT_SCORING_PERIOD =
-  process.env.NEXT_PUBLIC_APP_MATCHUP_WEEK?.toString();
 
 // https://www.fantrax.com/fxpa/req?leagueId=1of9qqosmafokzoq
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
@@ -365,7 +362,7 @@ export default async function Lineup({
 }) {
   const [id, matchup] = params.team;
   // @todo make this automatic
-  const scoringPeriodToDisplay = matchup ?? CURRENT_SCORING_PERIOD;
+  const scoringPeriodToDisplay = matchup ?? getCurrentWeek();
   const matchupPeriods = MATCHUPS[scoringPeriodToDisplay].periods;
   
   // Get the toggle parameters from URL
