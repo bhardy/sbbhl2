@@ -2,7 +2,7 @@ import { zip, mergeWith, add } from "lodash-es";
 import { DateTime } from "luxon";
 import { MATCHUPS, getCurrentWeek } from "../../constants/matchups";
 
-const LEAGUE_ID = '1of9qqosmafokzoq'
+const LEAGUE_ID = "1of9qqosmafokzoq";
 
 // https://www.fantrax.com/fxpa/req?leagueId=1of9qqosmafokzoq
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
@@ -65,34 +65,34 @@ type GamesPlayedType = {
 const convertToPacific = (time: string, serverDate: string | number) => {
   try {
     // Handle case where serverDate is a timestamp number
-    if (typeof serverDate === 'number') {
+    if (typeof serverDate === "number") {
       // Convert timestamp to a date and use a default timezone
       // Since we don't know the original timezone from the timestamp, use Eastern as default
       const sourceZone = "America/New_York";
-      
+
       // Remove the day of week and parse the time
       const timeWithoutDay = time.split(" ")[1];
-      
+
       // Parse using the correct format for "7:00PM"
       const sourceTime = DateTime.fromFormat(timeWithoutDay, "h:mma", {
         zone: sourceZone,
       });
-      
+
       if (!sourceTime.isValid) {
         console.error("Invalid time format:", time);
         return time;
       }
-      
+
       const pacificTime = sourceTime.setZone("America/Los_Angeles");
       return `${time.split(" ")[0]} ${pacificTime.toFormat("h:mma ZZZZ")}`;
     }
-    
+
     // Handle case where serverDate is not a string or is undefined
-    if (!serverDate || typeof serverDate !== 'string') {
+    if (!serverDate || typeof serverDate !== "string") {
       console.warn("Invalid serverDate:", serverDate);
       return time;
     }
-    
+
     // Extract timezone from serverDate (e.g., "EDT" from "8:03 PM EDT")
     const sourceTimezone = serverDate.split(" ").pop();
 
@@ -150,7 +150,7 @@ const formatMinMax = (minMax: minMaxType): GamesPlayedType => {
       }
       return acc;
     },
-    {},
+    {}
   ) as GamesPlayedType;
 };
 
@@ -194,7 +194,7 @@ const getPositionTable = (tables: any, tableIndex: number) =>
           }
           return playerAcc;
         },
-        { players: [], count: {} },
+        { players: [], count: {} }
       );
 
       periodAcc.players.push(periodPlayers.players);
@@ -210,7 +210,7 @@ const getPositionTable = (tables: any, tableIndex: number) =>
 
       return periodAcc;
     },
-    { players: [], count: {} },
+    { players: [], count: {} }
   );
 
 async function getTeamRosterInfo({
@@ -240,7 +240,7 @@ async function getTeamRosterInfo({
         ],
       }),
       cache: "no-store",
-    },
+    }
   );
 
   if (!res.ok) {
@@ -279,7 +279,7 @@ async function getGamesPlayed({
         ],
       }),
       cache: "no-store",
-    },
+    }
   );
 
   if (!res.ok) {
@@ -328,7 +328,7 @@ const getTeamRosterInfoForPeriods = async ({
   periods: string[];
 }) => {
   const res = await Promise.all(
-    periods.map((period) => getTeamRosterInfo({ teamId, period })),
+    periods.map((period) => getTeamRosterInfo({ teamId, period }))
   );
   return res; // Here, res is an array of response objects
 };
@@ -336,7 +336,7 @@ const getTeamRosterInfoForPeriods = async ({
 async function getTeamData(
   teamId: string,
   periods: string[],
-  scoringPeriod: string,
+  scoringPeriod: string
 ) {
   const roster = await getTeamRosterInfoForPeriods({
     teamId,
@@ -364,14 +364,14 @@ export default async function Lineup({
   // @todo make this automatic
   const scoringPeriodToDisplay = matchup ?? getCurrentWeek();
   const matchupPeriods = MATCHUPS[scoringPeriodToDisplay].periods;
-  
+
   // Get the toggle parameters from URL
-  const showMinors = searchParams.showMinors === 'true';
+  const showMinors = searchParams.showMinors === "true";
 
   const [roster, minMax] = await getTeamData(
     id,
     matchupPeriods,
-    scoringPeriodToDisplay,
+    scoringPeriodToDisplay
   );
 
   // @note: it would be nicer to grab this from the header request but this works for now
@@ -403,7 +403,7 @@ export default async function Lineup({
 
   // @note this bit gets each period (day)'s table
   const tables = roster.map((res: any) =>
-    res.responses.map((p: any) => p.data),
+    res.responses.map((p: any) => p.data)
   );
 
   // @note this bit gets the players from each period
@@ -538,20 +538,20 @@ function RosterTable({
                         }`}
                       >
                         <span
-                          className={`py-0 px-1 rounded-sm ${effectivePlaysToday ? `${POSITION_COLORS[cell.posId]} text-slate-100` : "bg-slate-200 text-slate-400 dark:bg-slate-500 dark:text-slate-300"}`}
+                          className={`py-0 px-1 rounded-sm ${
+                            effectivePlaysToday
+                              ? `${POSITION_COLORS[cell.posId]} text-slate-100`
+                              : "bg-slate-200 text-slate-500 dark:bg-slate-500 dark:text-slate-200"
+                          }`}
                         >
                           {POSITIONS[cell.posId]}
                         </span>
                         {cell.isMinors && (
-                          <span className={`ml-1 text-xs px-1 py-0.5 rounded ${
-                            showMinors 
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : "bg-slate-200 text-slate-400 dark:bg-slate-500 dark:text-slate-300"
-                          }`}>
+                          <span className="ml-2 py-0 px-0.5 rounded-sm text-xs font-bold text-green-600 dark:text-green-400 border border-green-600 dark:border-green-400">
                             M
                           </span>
                         )}{" "}
-                        {effectivePlaysToday && (
+                        {playsToday && (
                           <span className="text-xs">
                             {opponent} {zonedTime}
                           </span>
@@ -563,13 +563,17 @@ function RosterTable({
                               return (
                                 <span
                                   key={pos}
-                                  className={`${effectivePlaysToday ? POSITION_TEXT_COLORS[pos] : "text-slate-400 dark:text-slate-400"} text-xs`}
+                                  className={`${
+                                    effectivePlaysToday
+                                      ? POSITION_TEXT_COLORS[pos]
+                                      : "text-slate-400 dark:text-slate-400"
+                                  } text-xs`}
                                 >
                                   {POSITIONS[pos]}
                                   {index !== cell.posIds.length - 1 && ", "}
                                 </span>
                               );
-                            },
+                            }
                           )}
                           ){" "}
                         </div>
@@ -634,8 +638,8 @@ function CountTable({
                     totals[206] > getMinMax("C")!.max
                       ? "text-red-400"
                       : totals[206] < getMinMax("C")!.max
-                        ? "text-blue-400"
-                        : ""
+                      ? "text-blue-400"
+                      : ""
                   }
                 >
                   {totals[206]} / {getMinMax("C")!.max}
@@ -647,8 +651,8 @@ function CountTable({
                     totals[203] > getMinMax("LW")!.max
                       ? "text-red-400"
                       : totals[203] < getMinMax("LW")!.max
-                        ? "text-blue-400"
-                        : ""
+                      ? "text-blue-400"
+                      : ""
                   }
                 >
                   {totals[203]} / {getMinMax("LW")!.max}
@@ -660,8 +664,8 @@ function CountTable({
                     totals[204] > getMinMax("RW")!.max
                       ? "text-red-400"
                       : totals[204] < getMinMax("RW")!.max
-                        ? "text-blue-400"
-                        : ""
+                      ? "text-blue-400"
+                      : ""
                   }
                 >
                   {totals[204]} / {getMinMax("RW")!.max}
@@ -673,8 +677,8 @@ function CountTable({
                     totals[202] > getMinMax("D")!.max
                       ? "text-red-400"
                       : totals[202] < getMinMax("D")!.max
-                        ? "text-blue-400"
-                        : ""
+                      ? "text-blue-400"
+                      : ""
                   }
                 >
                   {totals[202]} / {getMinMax("D")!.max}
@@ -686,8 +690,8 @@ function CountTable({
                     totals[201] > getMinMax("G")!.max
                       ? "text-red-400"
                       : totals[201] < getMinMax("G")!.max
-                        ? "text-blue-400"
-                        : ""
+                      ? "text-blue-400"
+                      : ""
                   }
                 >
                   {totals[201]} / {getMinMax("G")!.max}
