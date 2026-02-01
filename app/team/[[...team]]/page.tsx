@@ -44,15 +44,6 @@ const POSITION_TEXT_COLORS: PositionColorType = {
 const DRESSED_GOALIES = 3;
 const DRESSED_SKATERS = 13;
 
-// Period 12 (game day periods 77-83) has custom max games per position limits
-const PERIOD_12_MAX_OVERRIDES: Record<string, number> = {
-  C: 6,
-  LW: 6,
-  RW: 6,
-  D: 7,
-  G: 3,
-};
-
 type CapsType = {
   min: string; // @note I think this is a string because it's not set
   pos: string;
@@ -393,11 +384,12 @@ export default async function Lineup({
   let caps: CapsType[] =
     minMax.responses[0].data.gamePlayedPerPosData.tableData;
 
-  // Apply period 12 max overrides if viewing matchup period 12
-  if (scoringPeriodToDisplay === "12") {
+  // Apply local max overrides if configured for this week
+  const maxOverrides = MATCHUPS[scoringPeriodToDisplay].maxGamesPerPos;
+  if (maxOverrides) {
     caps = caps.map((cap) => ({
       ...cap,
-      max: PERIOD_12_MAX_OVERRIDES[cap.posShort] ?? cap.max,
+      max: maxOverrides[cap.posShort as keyof typeof maxOverrides] ?? cap.max,
     }));
   }
 
