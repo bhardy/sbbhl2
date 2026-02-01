@@ -1,6 +1,7 @@
 // Shared matchup configuration
 export type MatchupType = {
   periods: string[];
+  maxGamesPerPos?: { C: number; LW: number; RW: number; D: number; G: number };
 };
 
 export type MatchupsType = {
@@ -43,6 +44,7 @@ export const MATCHUPS: MatchupsType = {
   },
   "12": {
     periods: ["77", "78", "79", "80", "81", "82", "83"],
+    maxGamesPerPos: { C: 6, LW: 6, RW: 6, D: 7, G: 3 },
   },
   "13": {
     periods: ["84", "85", "86", "87", "88", "89", "90"],
@@ -61,6 +63,7 @@ export const MATCHUPS: MatchupsType = {
   },
   "18": {
     periods: ["119", "120", "121", "122", "123", "124", "125"],
+    maxGamesPerPos: { C: 6, LW: 6, RW: 6, D: 7, G: 3 },
   },
   "19": {
     periods: [
