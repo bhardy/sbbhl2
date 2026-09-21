@@ -3,7 +3,7 @@ import { DateTime } from "luxon";
 import { MATCHUPS, getCurrentWeek } from "../../constants/matchups";
 import { LEAGUE_ID } from "../../constants/league";
 
-// https://www.fantrax.com/fxpa/req?leagueId=1of9qqosmafokzoq
+// https://www.fantrax.com/fxpa/req?leagueId=${LEAGUE_ID}
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
 // const res = await fetch('https://www.fantrax.com/fxea/general/getPlayerIds?sport=NHL')
 
