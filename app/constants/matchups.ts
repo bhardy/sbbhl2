@@ -57,9 +57,11 @@ const MATCHUP_LENGTHS: number[] = [
 // C: 9, LW: 9, RW: 9, D: 12, G: 5 for a normal week; add an entry here to
 // prorate a week with fewer NHL games (e.g. Christmas week).
 const MAX_GAMES_OVERRIDES: { [key: string]: MatchupType["maxGamesPerPos"] } = {
-  // Christmas week: 34 NHL games vs. a 51-game median week (~2/3), and the
-  // league is dark Dec 23-25. Same proration used for Christmas week last season.
-  "13": { C: 6, LW: 6, RW: 6, D: 7, G: 3 },
+  // Christmas week (matchup 13, Dec 21-27) is the one candidate for proration
+  // this season: 34 NHL games against a 51-game median week (~2/3), with no
+  // games Dec 23-25. Last season's Christmas week was set to 6/6/6/7/3.
+  // Undecided for now - uncomment to apply.
+  // "13": { C: 6, LW: 6, RW: 6, D: 7, G: 3 },
 };
 
 const buildMatchups = (): MatchupsType => {
