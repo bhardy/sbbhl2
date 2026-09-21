@@ -8,108 +8,74 @@ export type MatchupsType = {
   [key: string]: MatchupType;
 };
 
-export const MATCHUPS: MatchupsType = {
-  "1": {
-    periods: ["1", "2", "3", "4", "5", "6"],
-  },
-  "2": {
-    periods: ["7", "8", "9", "10", "11", "12", "13"],
-  },
-  "3": {
-    periods: ["14", "15", "16", "17", "18", "19", "20"],
-  },
-  "4": {
-    periods: ["21", "22", "23", "24", "25", "26", "27"],
-  },
-  "5": {
-    periods: ["28", "29", "30", "31", "32", "33", "34"],
-  },
-  "6": {
-    periods: ["35", "36", "37", "38", "39", "40", "41"],
-  },
-  "7": {
-    periods: ["42", "43", "44", "45", "46", "47", "48"],
-  },
-  "8": {
-    periods: ["49", "50", "51", "52", "53", "54", "55"],
-  },
-  "9": {
-    periods: ["56", "57", "58", "59", "60", "61", "62"],
-  },
-  "10": {
-    periods: ["63", "64", "65", "66", "67", "68", "69"],
-  },
-  "11": {
-    periods: ["70", "71", "72", "73", "74", "75", "76"],
-  },
-  "12": {
-    periods: ["77", "78", "79", "80", "81", "82", "83"],
-    maxGamesPerPos: { C: 6, LW: 6, RW: 6, D: 7, G: 3 },
-  },
-  "13": {
-    periods: ["84", "85", "86", "87", "88", "89", "90"],
-  },
-  "14": {
-    periods: ["91", "92", "93", "94", "95", "96", "97"],
-  },
-  "15": {
-    periods: ["98", "99", "100", "101", "102", "103", "104"],
-  },
-  "16": {
-    periods: ["105", "106", "107", "108", "109", "110", "111"],
-  },
-  "17": {
-    periods: ["112", "113", "114", "115", "116", "117", "118"],
-  },
-  "18": {
-    periods: ["119", "120", "121", "122", "123", "124", "125"],
-    maxGamesPerPos: { C: 6, LW: 6, RW: 6, D: 7, G: 3 },
-  },
-  "19": {
-    periods: [
-      "126",
-      "127",
-      "128",
-      "129",
-      "130",
-      "131",
-      "132",
-      "133",
-      "134",
-      "135",
-      "136",
-      "137",
-      "138",
-      "139",
-      "140",
-      "141",
-      "142",
-      "143",
-      "144",
-      "145",
-      "146",
-    ],
-  },
-  "20": {
-    periods: ["147", "148", "149", "150", "151", "152", "153"],
-  },
-  "21": {
-    periods: ["154", "155", "156", "157", "158", "159", "160"],
-  },
-  "22": {
-    periods: ["161", "162", "163", "164", "165", "166", "167"],
-  },
-  "23": {
-    periods: ["168", "169", "170", "171", "172", "173", "174"],
-  },
-  "24": {
-    periods: ["175", "176", "177", "178", "179", "180", "181"],
-  },
+// ---------------------------------------------------------------------------
+// 2026-27 season
+//
+// Fantrax "periods" are individual game days, numbered from 1 on the first day
+// of the SBBHL season. Matchups are groups of consecutive periods.
+//
+//   - Period 1 is Tue Sep 29, 2026 (NHL opening night)
+//   - Matchup 1 is the short opening week (Tue-Sun), then Mon-Sun weeks
+//   - Matchup 19 is two weeks (Feb 1-14) merged around the All-Star break
+//   - Matchups 23-25 are the playoffs; the final (25) is Mar 22-28, the third
+//     last week of the NHL schedule (regular season ends Sat Apr 10, 2027)
+// ---------------------------------------------------------------------------
+
+// Season starts September 29, 2026 (period 1) - using UTC for consistency
+const SEASON_START_DATE = new Date(Date.UTC(2026, 8, 29)); // Month is 0-indexed, so 8 = September
+
+// Number of daily periods in each matchup, in order (index 0 is matchup 1)
+const MATCHUP_LENGTHS: number[] = [
+  6, // 1:  Sep 29 - Oct 4
+  7, // 2:  Oct 5 - Oct 11
+  7, // 3:  Oct 12 - Oct 18
+  7, // 4:  Oct 19 - Oct 25
+  7, // 5:  Oct 26 - Nov 1
+  7, // 6:  Nov 2 - Nov 8
+  7, // 7:  Nov 9 - Nov 15
+  7, // 8:  Nov 16 - Nov 22
+  7, // 9:  Nov 23 - Nov 29
+  7, // 10: Nov 30 - Dec 6
+  7, // 11: Dec 7 - Dec 13
+  7, // 12: Dec 14 - Dec 20
+  7, // 13: Dec 21 - Dec 27 (Christmas break, ~2/3 of a normal week's games)
+  7, // 14: Dec 28 - Jan 3
+  7, // 15: Jan 4 - Jan 10
+  7, // 16: Jan 11 - Jan 17
+  7, // 17: Jan 18 - Jan 24
+  7, // 18: Jan 25 - Jan 31
+  14, // 19: Feb 1 - Feb 14 (All-Star break, two weeks merged)
+  7, // 20: Feb 15 - Feb 21
+  7, // 21: Feb 22 - Feb 28
+  7, // 22: Mar 1 - Mar 7
+  7, // 23: Mar 8 - Mar 14 (playoffs round 1)
+  7, // 24: Mar 15 - Mar 21 (playoffs round 2)
+  7, // 25: Mar 22 - Mar 28 (final)
+];
+
+// Per-matchup overrides for max games per position. Fantrax's default caps are
+// C: 9, LW: 9, RW: 9, D: 12, G: 5 for a normal week; add an entry here to
+// prorate a week with fewer NHL games (e.g. Christmas week).
+const MAX_GAMES_OVERRIDES: { [key: string]: MatchupType["maxGamesPerPos"] } = {};
+
+const buildMatchups = (): MatchupsType => {
+  const matchups: MatchupsType = {};
+  let nextPeriod = 1;
+  MATCHUP_LENGTHS.forEach((length, index) => {
+    const id = (index + 1).toString();
+    const periods = Array.from({ length }, (_, i) => (nextPeriod + i).toString());
+    nextPeriod += length;
+    matchups[id] = MAX_GAMES_OVERRIDES[id]
+      ? { periods, maxGamesPerPos: MAX_GAMES_OVERRIDES[id] }
+      : { periods };
+  });
+  return matchups;
 };
 
-// Generate period dates programmatically
-// Season starts October 7, 2025 (period 1) - using UTC for consistency
-const SEASON_START_DATE = new Date(Date.UTC(2025, 9, 7)); // Month is 0-indexed, so 9 = October
+export const MATCHUPS: MatchupsType = buildMatchups();
+
+// Matchup ids in season order, for the week picker
+export const MATCHUP_IDS: string[] = Object.keys(MATCHUPS);
 
 // Helper function to get the actual Date object for a period (UTC)
 const getPeriodDateObject = (periodNumber: number): Date => {

@@ -3,10 +3,8 @@ import localFont from "next/font/local";
 import { SelectNav } from "./components/SelectNav";
 import { Refresh } from "./components/Refresh";
 import { Suspense } from "react";
+import { LEAGUE_ID } from "./constants/league";
 import "./globals.css";
-
-const LEAGUE_ID = '1of9qqosmafokzoq'
-// const LEAGUE_ID = 'erva93djlwitpx9j'
 
 const geistSans = localFont({
   src: "./fonts/GeistVF.woff",

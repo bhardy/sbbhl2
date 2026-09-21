@@ -1,7 +1,11 @@
 "use client";
 
 import { useRouter, useParams, useSearchParams } from "next/navigation";
-import { getMatchupDateRange, getCurrentWeek } from "../constants/matchups";
+import {
+  MATCHUP_IDS,
+  getMatchupDateRange,
+  getCurrentWeek,
+} from "../constants/matchups";
 import { useState, useEffect } from "react";
 
 type TeamTempType = {
@@ -62,8 +66,7 @@ export const SelectNav = ({ teams }: { teams: TeamTempType[] }) => {
   };
 
 
-  // Generate weeks with date ranges
-  const weeks = Array.from({ length: 24 }, (_, i) => (i + 1).toString());
+  const weeks = MATCHUP_IDS;
 
   return (
     <div className="flex flex-col lg:flex-row gap-2 lg:items-center">
