@@ -1,8 +1,7 @@
 import { zip, mergeWith, add } from "lodash-es";
 import { DateTime } from "luxon";
 import { MATCHUPS, getCurrentWeek } from "../../constants/matchups";
-
-const LEAGUE_ID = "1of9qqosmafokzoq";
+import { LEAGUE_ID } from "../../constants/league";
 
 // https://www.fantrax.com/fxpa/req?leagueId=1of9qqosmafokzoq
 // const res = await fetch(`https://www.fantrax.com/fxea/general/getTeamRosters?leagueId=${LEAGUE_ID}`)
