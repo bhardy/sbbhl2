@@ -16,15 +16,18 @@ export type MatchupsType = {
 //
 //   - Period 1 is Tue Sep 29, 2026 (NHL opening night)
 //   - Matchup 1 is the short opening week (Tue-Sun), then Mon-Sun weeks
-//   - Matchup 19 is two weeks (Feb 1-14) merged around the All-Star break
-//   - Matchups 23-25 are the playoffs; the final (25) is Mar 22-28, the third
-//     last week of the NHL schedule (regular season ends Sat Apr 10, 2027)
+//   - Matchup 13 is two weeks (Dec 21 - Jan 3) merged around the Christmas break
+//   - Matchup 18 is two weeks (Feb 1-14) merged around the All-Star break
+//   - 21-matchup regular season; 22-24 are the playoffs (4 teams). The final
+//     (24) is Mar 22-28, the third last week of the NHL schedule (regular
+//     season ends Sat Apr 10, 2027)
 // ---------------------------------------------------------------------------
 
 // Season starts September 29, 2026 (period 1) - using UTC for consistency
 const SEASON_START_DATE = new Date(Date.UTC(2026, 8, 29)); // Month is 0-indexed, so 8 = September
 
-// Number of daily periods in each matchup, in order (index 0 is matchup 1)
+// Number of daily periods in each matchup, in order (index 0 is matchup 1).
+// Matches Fantrax's scoring periods for league 4o1j5jn2moolnhef.
 const MATCHUP_LENGTHS: number[] = [
   6, // 1:  Sep 29 - Oct 4
   7, // 2:  Oct 5 - Oct 11
@@ -38,31 +41,25 @@ const MATCHUP_LENGTHS: number[] = [
   7, // 10: Nov 30 - Dec 6
   7, // 11: Dec 7 - Dec 13
   7, // 12: Dec 14 - Dec 20
-  7, // 13: Dec 21 - Dec 27 (Christmas break, ~2/3 of a normal week's games)
-  7, // 14: Dec 28 - Jan 3
-  7, // 15: Jan 4 - Jan 10
-  7, // 16: Jan 11 - Jan 17
-  7, // 17: Jan 18 - Jan 24
-  7, // 18: Jan 25 - Jan 31
-  14, // 19: Feb 1 - Feb 14 (All-Star break, two weeks merged)
-  7, // 20: Feb 15 - Feb 21
-  7, // 21: Feb 22 - Feb 28
-  7, // 22: Mar 1 - Mar 7
-  7, // 23: Mar 8 - Mar 14 (playoffs round 1)
-  7, // 24: Mar 15 - Mar 21 (playoffs round 2)
-  7, // 25: Mar 22 - Mar 28 (final)
+  14, // 13: Dec 21 - Jan 3 (Christmas break, two weeks merged)
+  7, // 14: Jan 4 - Jan 10
+  7, // 15: Jan 11 - Jan 17
+  7, // 16: Jan 18 - Jan 24
+  7, // 17: Jan 25 - Jan 31
+  14, // 18: Feb 1 - Feb 14 (All-Star break, two weeks merged)
+  7, // 19: Feb 15 - Feb 21
+  7, // 20: Feb 22 - Feb 28
+  7, // 21: Mar 1 - Mar 7
+  7, // 22: Mar 8 - Mar 14 (playoffs round 1)
+  7, // 23: Mar 15 - Mar 21 (playoffs round 2)
+  7, // 24: Mar 22 - Mar 28 (final)
 ];
 
 // Per-matchup overrides for max games per position. Fantrax's default caps are
-// C: 9, LW: 9, RW: 9, D: 12, G: 5 for a normal week; add an entry here to
-// prorate a week with fewer NHL games (e.g. Christmas week).
-const MAX_GAMES_OVERRIDES: { [key: string]: MatchupType["maxGamesPerPos"] } = {
-  // Christmas week (matchup 13, Dec 21-27) is the one candidate for proration
-  // this season: 34 NHL games against a 51-game median week (~2/3), with no
-  // games Dec 23-25. Last season's Christmas week was set to 6/6/6/7/3.
-  // Undecided for now - uncomment to apply.
-  // "13": { C: 6, LW: 6, RW: 6, D: 7, G: 3 },
-};
+// C: 9, LW: 9, RW: 9, D: 12, G: 5 for every matchup, including the merged
+// two-week ones; add an entry here to prorate a matchup. No overrides for
+// 2026-27 - the league is using 9/9/9/12/5 everywhere.
+const MAX_GAMES_OVERRIDES: { [key: string]: MatchupType["maxGamesPerPos"] } = {};
 
 const buildMatchups = (): MatchupsType => {
   const matchups: MatchupsType = {};
