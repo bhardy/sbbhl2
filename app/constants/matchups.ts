@@ -16,7 +16,8 @@ export type MatchupsType = {
 //
 //   - Period 1 is Tue Sep 29, 2026 (NHL opening night)
 //   - Matchup 1 is the short opening week (Tue-Sun), then Mon-Sun weeks
-//   - Matchup 13 is two weeks (Dec 21 - Jan 3) merged around the Christmas break
+//   - Matchups 12-13 split the three weeks Dec 14 - Jan 3 at the Dec 23-25
+//     Christmas break (70 and 73 NHL games) instead of Sunday boundaries
 //   - Matchup 18 is two weeks (Feb 1-14) merged around the All-Star break
 //   - 21-matchup regular season; 22-24 are the playoffs (4 teams). The final
 //     (24) is Mar 22-28, the third last week of the NHL schedule (regular
@@ -40,8 +41,8 @@ const MATCHUP_LENGTHS: number[] = [
   7, // 9:  Nov 23 - Nov 29
   7, // 10: Nov 30 - Dec 6
   7, // 11: Dec 7 - Dec 13
-  7, // 12: Dec 14 - Dec 20
-  14, // 13: Dec 21 - Jan 3 (Christmas break, two weeks merged)
+  11, // 12: Mon Dec 14 - Thu Dec 24 (ends at the Christmas break)
+  10, // 13: Fri Dec 25 - Sun Jan 3
   7, // 14: Jan 4 - Jan 10
   7, // 15: Jan 11 - Jan 17
   7, // 16: Jan 18 - Jan 24
