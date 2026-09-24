@@ -272,17 +272,17 @@ export function RecordsView({
                   <tr key={r.key}>
                     <td className={TD}>{i + 1}</td>
                     <td className={`${TD} text-left`}>
-                      {r.aka.length > 0 ? (
-                        // Former names on hover; the dotted underline hints there's more.
-                        <span
-                          className="font-bold underline decoration-dotted underline-offset-4 cursor-help"
-                          title={`${grouping === "franchise" ? "Formerly" : "Teams"}: ${r.aka.join(", ")}`}
-                        >
-                          {r.label}
-                        </span>
-                      ) : (
-                        <span className="font-bold">{r.label}</span>
-                      )}
+                      {/* Former names (or a manager's teams) on hover. */}
+                      <span
+                        className="font-bold"
+                        title={
+                          r.aka.length
+                            ? `${grouping === "franchise" ? "Formerly" : "Teams"}: ${r.aka.join(", ")}`
+                            : undefined
+                        }
+                      >
+                        {r.label}
+                      </span>
                     </td>
                     <td className={TD}>{r.seasons}</td>
                     {cell && <td className={TD}>{cell.finish}</td>}
