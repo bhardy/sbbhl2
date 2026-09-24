@@ -134,6 +134,13 @@ export function RecordsView({
   }, [grouping, range, sort, allColumns]);
 
   const grid = grids[grouping];
+  // Fixed width (monospace, so ch is exact) of the longest team name on record,
+  // so the name column doesn't jump around as the view changes.
+  const nameWidth = `${Math.max(
+    ...Object.values(grids.franchise).flatMap((seasons) =>
+      Object.values(seasons).map((c) => c.teamName.length),
+    ),
+  )}ch`;
   const columns = allColumns.filter((c) => c.year >= range.from && c.year <= range.to);
   const isAllTime = columns.length === allColumns.length;
   // A single season adds finish and result columns.
@@ -274,7 +281,8 @@ export function RecordsView({
                     <td className={`${TD} text-left`}>
                       {/* Former names (or a manager's teams) on hover. */}
                       <span
-                        className="font-bold"
+                        className="font-bold inline-block"
+                        style={{ width: nameWidth }}
                         title={
                           r.aka.length
                             ? `${grouping === "franchise" ? "Formerly" : "Teams"}: ${r.aka.join(", ")}`
@@ -340,7 +348,11 @@ export function RecordsView({
             <tbody>
               {sorted.map((r) => (
                 <tr key={r.key}>
-                  <td className={`${TD} text-left font-bold sticky left-0 bg-white dark:bg-slate-900`}>{r.label}</td>
+                  <td className={`${TD} text-left font-bold sticky left-0 bg-white dark:bg-slate-900`}>
+                    <span className="inline-block" style={{ width: nameWidth }}>
+                      {r.label}
+                    </span>
+                  </td>
                   {columns.map((c) => {
                     const cell = grid[r.key]?.[c.year];
                     if (!cell) return <td key={c.year} className={TD} />;
