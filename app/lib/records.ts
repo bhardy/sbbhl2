@@ -17,6 +17,8 @@ export type RecordRow = {
   titles: number;
   finals: number;
   playoffApps: number;
+  // First-round playoff byes.
+  byes: number;
 };
 
 export type SeasonCell = {
@@ -25,6 +27,7 @@ export type SeasonCell = {
   // 1 = champion, 2 = runner-up, then regular season order.
   finish: number;
   regular: WLT;
+  bye: boolean;
   result: "champion" | "runner-up" | "semis" | "quarters" | "playoffs" | "missed";
 };
 
@@ -41,6 +44,8 @@ export type SeasonColumn = {
 
 export type Records = {
   rows: RecordRow[];
+  // Records for a single season, keyed by year.
+  bySeason: Record<number, RecordRow[]>;
   // grid[key][year]
   grid: Record<string, Record<number, SeasonCell>>;
 };
@@ -80,6 +85,13 @@ export function seasonColumns(seasons: Season[]): SeasonColumn[] {
 }
 
 export function buildRecords(seasons: Season[], grouping: Grouping): Records {
+  return {
+    ...tally(seasons, grouping),
+    bySeason: Object.fromEntries(seasons.map((s) => [s.year, tally([s], grouping).rows])),
+  };
+}
+
+function tally(seasons: Season[], grouping: Grouping): Omit<Records, "bySeason"> {
   const rows = new Map<string, RecordRow & { names: Set<string> }>();
   const grid: Records["grid"] = {};
 
@@ -94,6 +106,10 @@ export function buildRecords(seasons: Season[], grouping: Grouping): Records {
       ...[season.champion, season.runnerUp].filter((n): n is string => !!n),
       ...season.standings.filter((n) => n !== season.champion && n !== season.runnerUp),
     ];
+    // Byes only exist once quarterfinals have been played (4-team brackets have none).
+    const quarterfinalists = new Set(
+      season.games.filter((g) => g.round === "QF").flatMap((g) => [g.a, g.b]),
+    );
 
     for (const teamName of season.standings) {
       const { key, manager } = keyFor(teamName, season.year);
@@ -112,6 +128,7 @@ export function buildRecords(seasons: Season[], grouping: Grouping): Records {
             titles: 0,
             finals: 0,
             playoffApps: 0,
+            byes: 0,
           })
           .get(key)!;
       row.names.add(teamName);
@@ -136,7 +153,9 @@ export function buildRecords(seasons: Season[], grouping: Grouping): Records {
       const madePlayoffs = season.playoffTeams.includes(teamName);
       const isChamp = season.champion === teamName;
       const isRunnerUp = season.runnerUp === teamName;
+      const bye = madePlayoffs && quarterfinalists.size > 0 && !quarterfinalists.has(teamName);
       if (madePlayoffs) row.playoffApps++;
+      if (bye) row.byes++;
       if (isChamp) row.titles++;
       if (isChamp || isRunnerUp) row.finals++;
 
@@ -145,6 +164,7 @@ export function buildRecords(seasons: Season[], grouping: Grouping): Records {
         manager,
         finish: finishOrder.indexOf(teamName) + 1,
         regular,
+        bye,
         result: isChamp
           ? "champion"
           : lastRound && !season.inProgress
