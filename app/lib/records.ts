@@ -164,15 +164,12 @@ export function buildGrid(seasons: Season[], grouping: Grouping): Grid {
   return grid;
 }
 
-// Records over the given seasons (oldest first). A streak is only "active" if
-// it runs through `latestYear`, the most recent finished season overall.
-export function aggregate(
-  grid: Grid,
-  columns: SeasonColumn[],
-  grouping: Grouping,
-  latestYear: number | undefined,
-): RecordRow[] {
+// Records over the given seasons (oldest first). A streak is "active" if it
+// runs through the last of those seasons that counts for streaks.
+export function aggregate(grid: Grid, columns: SeasonColumn[], grouping: Grouping): RecordRow[] {
   const streakYears = columns.filter((c) => c.countsForStreaks).map((c) => c.year);
+  // "Active" means nothing within a single season.
+  const latestYear = streakYears.length > 1 ? streakYears.at(-1) : undefined;
 
   const longestStreak = (seasons: Record<number, SeasonCell>, made: boolean) => {
     let best = null as Streak | null;
