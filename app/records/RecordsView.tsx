@@ -19,9 +19,11 @@ type SortKey =
   | "overall"
   | "titles"
   | "finals"
-  | "playoffApps";
+  | "playoffApps"
+  | "byes"
+  | "finish";
 
-const SORTERS: Record<SortKey, (r: RecordRow) => number | string> = {
+const SORTERS: Record<Exclude<SortKey, "finish">, (r: RecordRow) => number | string> = {
   label: (r) => r.label.toLowerCase(),
   seasons: (r) => r.seasons,
   regular: (r) => winPct(r.regular),
@@ -30,7 +32,12 @@ const SORTERS: Record<SortKey, (r: RecordRow) => number | string> = {
   titles: (r) => r.titles,
   finals: (r) => r.finals,
   playoffApps: (r) => r.playoffApps,
+  byes: (r) => r.byes,
 };
+
+// Only meaningful across multiple seasons; a single season sorts by finish instead.
+const ALL_TIME_KEYS: SortKey[] = ["seasons", "titles", "finals", "playoffApps", "byes"];
+const ASCENDING_KEYS: SortKey[] = ["label", "finish"];
 
 const RESULT_TEXT: Record<SeasonCell["result"], string> = {
   champion: "Champion",
@@ -66,11 +73,25 @@ export function RecordsView({
   records: Record<Grouping, Records>;
 }) {
   const [grouping, setGrouping] = useState<Grouping>("franchise");
+  const [season, setSeason] = useState<number | null>(null);
   const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "overall", desc: true });
 
-  const { rows, grid } = records[grouping];
+  const { grid, bySeason } = records[grouping];
+  const selected = columns.find((c) => c.year === season);
+  const rows = selected ? bySeason[selected.year] : records[grouping].rows;
+  const cellFor = (r: RecordRow) => (selected ? grid[r.key]?.[selected.year] : undefined);
+  const sortValue = (r: RecordRow) =>
+    sort.key === "finish" ? (cellFor(r)?.finish ?? Infinity) : SORTERS[sort.key](r);
+
+  const selectSeason = (year: number | null) => {
+    setSeason(year);
+    if (year !== null && season === null) setSort({ key: "finish", desc: false });
+    if (year !== null && ALL_TIME_KEYS.includes(sort.key)) setSort({ key: "finish", desc: false });
+    if (year === null && sort.key === "finish") setSort({ key: "overall", desc: true });
+  };
+
   const sorted = [...rows].sort((x, y) => {
-    const [a, b] = [SORTERS[sort.key](x), SORTERS[sort.key](y)];
+    const [a, b] = [sortValue(x), sortValue(y)];
     const cmp = a < b ? -1 : a > b ? 1 : winPct(y.overall) - winPct(x.overall);
     return sort.desc && a !== b ? -cmp : cmp;
   });
@@ -79,7 +100,7 @@ export function RecordsView({
     <th className={`${TH} ${className}`}>
       <button
         className="hover:underline"
-        onClick={() => setSort((s) => ({ key: k, desc: s.key === k ? !s.desc : k !== "label" }))}
+        onClick={() => setSort((s) => ({ key: k, desc: s.key === k ? !s.desc : !ASCENDING_KEYS.includes(k) }))}
       >
         {children}
         {sort.key === k ? (sort.desc ? " ↓" : " ↑") : ""}
@@ -108,7 +129,20 @@ export function RecordsView({
       </div>
 
       <section>
-        <h2 className="text-xl font-bold mb-2">All-time records</h2>
+        <h2 className="text-xl font-bold mb-2">{selected ? selected.label : "All-time"} records</h2>
+        <select
+          className="rounded-lg text-black px-2 py-1 bg-slate-200 mb-2"
+          value={season ?? ""}
+          onChange={(e) => selectSeason(e.target.value ? Number(e.target.value) : null)}
+        >
+          <option value="">All-time</option>
+          {[...columns].reverse().map((c) => (
+            <option key={c.year} value={c.year}>
+              {c.label}
+              {c.inProgress ? " (in progress)" : ""}
+            </option>
+          ))}
+        </select>
         <div className="overflow-auto -mx-4 px-4">
           <table className="border-collapse table-auto text-sm text-right">
             <thead>
@@ -119,45 +153,67 @@ export function RecordsView({
                 <th colSpan={2} className={`${TH} text-center`}>Regular season</th>
                 <th colSpan={2} className={`${TH} text-center`}>Playoffs</th>
                 <th colSpan={2} className={`${TH} text-center`}>Combined</th>
-                <th colSpan={3} className={TH} />
+                <th colSpan={selected ? 1 : 4} className={TH} />
               </tr>
               <tr>
                 <th className={TH}>#</th>
                 <SortHeader k="label" className="text-left">{nameHeader}</SortHeader>
-                <SortHeader k="seasons">Yrs</SortHeader>
+                {selected ? <SortHeader k="finish">Finish</SortHeader> : <SortHeader k="seasons">Yrs</SortHeader>}
                 <th className={TH}>W-L-T</th>
                 <SortHeader k="regular">Pct</SortHeader>
                 <th className={TH}>W-L-T</th>
                 <SortHeader k="playoffs">Pct</SortHeader>
                 <th className={TH}>W-L-T</th>
                 <SortHeader k="overall">Pct</SortHeader>
-                <SortHeader k="titles">Titles</SortHeader>
-                <SortHeader k="finals">Finals</SortHeader>
-                <SortHeader k="playoffApps">Playoffs</SortHeader>
+                {selected ? (
+                  <th className={`${TH} text-left`}>Result</th>
+                ) : (
+                  <>
+                    <SortHeader k="titles">Titles</SortHeader>
+                    <SortHeader k="finals">Finals</SortHeader>
+                    <SortHeader k="playoffApps">Playoffs</SortHeader>
+                    <SortHeader k="byes">Byes</SortHeader>
+                  </>
+                )}
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-slate-800">
-              {sorted.map((r, i) => (
-                <tr key={r.key}>
-                  <td className={TD}>{i + 1}</td>
-                  <td className={`${TD} text-left`}>
-                    <div className="font-bold">{r.label}</div>
-                    {r.aka.length > 0 && (
-                      <div className="text-xs text-slate-400 whitespace-normal min-w-48">{r.aka.join(" · ")}</div>
+              {sorted.map((r, i) => {
+                const cell = cellFor(r);
+                return (
+                  <tr key={r.key}>
+                    <td className={TD}>{i + 1}</td>
+                    <td className={`${TD} text-left`}>
+                      <div className="font-bold">{r.label}</div>
+                      {r.aka.length > 0 && (
+                        <div className="text-xs text-slate-400 whitespace-normal min-w-48">{r.aka.join(" · ")}</div>
+                      )}
+                    </td>
+                    <td className={TD}>{cell ? cell.finish : r.seasons}</td>
+                    <td className={TD}>{fmtWLT(r.regular)}</td>
+                    <td className={TD}>{fmtPct(r.regular)}</td>
+                    <td className={TD}>{fmtWLT(r.playoffs)}</td>
+                    <td className={TD}>{fmtPct(r.playoffs)}</td>
+                    <td className={TD}>{fmtWLT(r.overall)}</td>
+                    <td className={TD}>{fmtPct(r.overall)}</td>
+                    {cell && selected ? (
+                      <td className={`${TD} text-left`}>
+                        {selected.inProgress && cell.result !== "champion"
+                          ? "In progress"
+                          : `${cell.result === "champion" ? "🏆 " : ""}${RESULT_TEXT[cell.result]}`}
+                        {cell.bye && " (bye)"}
+                      </td>
+                    ) : (
+                      <>
+                        <td className={TD}>{r.titles ? "🏆".repeat(r.titles) : "-"}</td>
+                        <td className={TD}>{r.finals || "-"}</td>
+                        <td className={TD}>{r.playoffApps || "-"}</td>
+                        <td className={TD}>{r.byes || "-"}</td>
+                      </>
                     )}
-                  </td>
-                  <td className={TD}>{r.seasons}</td>
-                  <td className={TD}>{fmtWLT(r.regular)}</td>
-                  <td className={TD}>{fmtPct(r.regular)}</td>
-                  <td className={TD}>{fmtWLT(r.playoffs)}</td>
-                  <td className={TD}>{fmtPct(r.playoffs)}</td>
-                  <td className={TD}>{fmtWLT(r.overall)}</td>
-                  <td className={TD}>{fmtPct(r.overall)}</td>
-                  <td className={TD}>{r.titles ? "🏆".repeat(r.titles) : "-"}</td>
-                  <td className={TD}>{r.finals || "-"}</td>
-                  <td className={TD}>{r.playoffApps || "-"}</td>
-                </tr>
-              ))}
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>
@@ -195,7 +251,7 @@ export function RecordsView({
                         className={`${TD} ${RESULT_CLASSES[cell.result]}`}
                         title={`${cell.teamName} (${cell.manager}) · ${fmtWLT(cell.regular)} · ${
                           c.inProgress ? "In progress" : RESULT_TEXT[cell.result]
-                        }`}
+                        }${cell.bye ? " (bye)" : ""}`}
                       >
                         {cell.result === "champion" ? "🏆" : c.inProgress ? <i>{cell.finish}</i> : cell.finish}
                       </td>
