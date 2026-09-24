@@ -52,6 +52,26 @@ export type Records = {
 
 const empty = (): WLT => ({ w: 0, l: 0, t: 0 });
 
+// "The Scottsmen" / "Scottsmen" and "StatutOrry Grapes" / "Statutory Grapes"
+// are the same name for display purposes.
+const nameKey = (name: string) =>
+  name
+    .toLowerCase()
+    .replace(/^the /, "")
+    .replace(/[^a-z0-9]/g, "")
+    .replace(/(.)\1+/g, "$1");
+
+// Names in the order they were used, collapsing spelling-only variants. A
+// variant group shows its most recent name if it's the current one, otherwise
+// its first.
+const distinctNames = (names: string[]) => {
+  const current = names.at(-1)!;
+  const groups = new Map<string, string>();
+  for (const n of names) if (!groups.has(nameKey(n))) groups.set(nameKey(n), n);
+  groups.set(nameKey(current), current);
+  return Array.from(groups.values());
+};
+
 const addResult = (rec: WLT, pts: number, oppPts: number) => {
   if (pts > oppPts) rec.w++;
   else if (pts < oppPts) rec.l++;
@@ -179,7 +199,7 @@ function tally(seasons: Season[], grouping: Grouping): Omit<Records, "bySeason">
   return {
     rows: Array.from(rows.values()).map(({ names, ...row }) => ({
       ...row,
-      aka: Array.from(names).filter((n) => n !== row.label),
+      aka: distinctNames(Array.from(names)).filter((n) => nameKey(n) !== nameKey(row.label)),
     })),
     grid,
   };
