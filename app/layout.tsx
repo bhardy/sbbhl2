@@ -1,9 +1,6 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
-import { SelectNav } from "./components/SelectNav";
-import { Refresh } from "./components/Refresh";
-import { Suspense } from "react";
-import { LEAGUE_ID } from "./constants/league";
+import { SiteNav } from "./components/SiteNav";
 import "./globals.css";
 
 const geistSans = localFont({
@@ -18,56 +15,24 @@ const geistMono = localFont({
 });
 
 export const metadata: Metadata = {
-  title: "SBBHL Lineup helper",
-  description: "Fantrax did not provide this functionality so Brant did",
+  title: "SBBHL",
+  description: "Super Best Buds Hockey League",
 };
 
-async function getTeams() {
-  const res = await fetch(
-    `https://www.fantrax.com/fxpa/req?leagueId=${LEAGUE_ID}`,
-    {
-      method: "POST",
-      // mode: "cors",
-      // cache: "no-cache",
-      // credentials: "same-origin",
-      headers: {
-        "Content-Type": "application/json",
-        // 'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: JSON.stringify({
-        msgs: [
-          {
-            method: "getTeamRosterInfo",
-            data: {
-              leagueId: LEAGUE_ID,
-            },
-          },
-        ],
-      }),
-    },
-  );
-  const data = await res.json();
-  return data.responses?.[0].data.fantasyTeams;
-}
-
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const teams = await getTeams();
   return (
     <html lang="en">
       <body
         className={`${geistSans.variable} ${geistMono.variable} antialiased mx-auto p-4  text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-900 font-mono`}
       >
         <div className="max-w-8xl mx-auto sm:px-6 md:px-8">
-          <nav className="flex flex-col gap-2 items-start">
-            <h1 className="text-3xl font-bold">SBBHL Lineup Helper</h1>
-            <Suspense fallback={<div>Loading navigation...</div>}>
-              <SelectNav teams={teams} />
-            </Suspense>
-            <Refresh />
+          <nav className="flex flex-col gap-2 items-start mb-4">
+            <h1 className="text-3xl font-bold">SBBHL</h1>
+            <SiteNav />
           </nav>
           {children}
         </div>

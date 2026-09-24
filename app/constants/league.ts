@@ -1,6 +1,7 @@
 // Fantrax league ID for the current SBBHL season.
 // Fantrax issues a new ID each time the league is renewed, so this is the one
-// value that changes every year.
+// value that changes every year. Before replacing it, freeze the season that
+// just ended for /records: `npm run snapshot-season -- <old league ID>`.
 export const LEAGUE_ID = "4o1j5jn2moolnhef";
 // 26-27: 4o1j5jn2moolnhef
 // 25-26: 1of9qqosmafokzoq
