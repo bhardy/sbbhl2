@@ -4,7 +4,7 @@ import historyJson from "../data/history.json";
 import { fetchFantraxSeason } from "../lib/fantrax";
 import { seasonLabel, type Season } from "../lib/history";
 import { buildGrid, seasonColumns } from "../lib/records";
-import { RecordsView } from "./RecordsView";
+import { RecordsView, type Query } from "./RecordsView";
 
 export const metadata: Metadata = {
   title: "SBBHL All-Time Records",
@@ -29,7 +29,7 @@ async function getLiveSeason() {
   }
 }
 
-export default async function RecordsPage() {
+export default async function RecordsPage({ searchParams }: { searchParams: Query }) {
   const live = await getLiveSeason();
   const seasons = [...history.filter((s) => s.year !== live?.year), ...(live ? [live] : [])];
   const lastFrozen = history.at(-1)!.year;
@@ -48,6 +48,7 @@ export default async function RecordsPage() {
         </p>
       )}
       <RecordsView
+        query={searchParams}
         columns={seasonColumns(seasons)}
         grids={{
           franchise: buildGrid(seasons, "franchise"),

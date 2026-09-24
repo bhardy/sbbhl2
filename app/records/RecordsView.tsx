@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { seasonLabel } from "../lib/history";
 import {
   aggregate,
@@ -14,35 +14,69 @@ import {
   type WLT,
 } from "../lib/records";
 
-type SortKey =
-  | "label"
-  | "seasons"
-  | "regular"
-  | "playoffs"
-  | "overall"
-  | "titles"
-  | "finals"
-  | "playoffApps"
-  | "byes"
-  | "madeStreak"
-  | "missedStreak"
-  | "finish";
-
-const SORTERS: Record<Exclude<SortKey, "finish">, (r: RecordRow) => number | string> = {
-  label: (r) => r.label.toLowerCase(),
-  seasons: (r) => r.seasons,
-  regular: (r) => winPct(r.regular),
-  playoffs: (r) => winPct(r.playoffs),
-  overall: (r) => winPct(r.overall),
-  titles: (r) => r.titles,
-  finals: (r) => r.finals,
-  playoffApps: (r) => r.playoffApps,
-  byes: (r) => r.byes,
-  madeStreak: (r) => r.madeStreak?.length ?? 0,
-  missedStreak: (r) => r.missedStreak?.length ?? 0,
+// Sort keys double as the `sort` query param, so keep them readable.
+const SORTERS = {
+  name: (r: RecordRow) => r.label.toLowerCase(),
+  seasons: (r: RecordRow) => r.seasons,
+  regular: (r: RecordRow) => winPct(r.regular),
+  playoffs: (r: RecordRow) => winPct(r.playoffs),
+  combined: (r: RecordRow) => winPct(r.overall),
+  titles: (r: RecordRow) => r.titles,
+  finals: (r: RecordRow) => r.finals,
+  "playoff-apps": (r: RecordRow) => r.playoffApps,
+  byes: (r: RecordRow) => r.byes,
+  "made-streak": (r: RecordRow) => r.madeStreak?.length ?? 0,
+  "missed-streak": (r: RecordRow) => r.missedStreak?.length ?? 0,
 };
 
-const ASCENDING_KEYS: SortKey[] = ["label", "finish"];
+type SortKey = keyof typeof SORTERS | "finish";
+type Sort = { key: SortKey; desc: boolean };
+
+const ASCENDING_KEYS: SortKey[] = ["name", "finish"];
+const defaultDesc = (key: SortKey) => !ASCENDING_KEYS.includes(key);
+// A single season sorts by finish; a range by combined win %.
+const defaultSort = (single: boolean): Sort =>
+  single ? { key: "finish", desc: false } : { key: "combined", desc: true };
+
+export type Query = Record<string, string | string[] | undefined>;
+
+// ?view=manager&from=2016-17&to=2019-20&sort=titles&dir=asc, defaults omitted.
+function parseQuery(query: Query, columns: SeasonColumn[]) {
+  const get = (k: string) => (typeof query[k] === "string" ? (query[k] as string) : undefined);
+  const years = columns.map((c) => c.year);
+  const toYear = (label?: string) => {
+    const year = Number(label?.match(/^(\d{4})-\d{2}$/)?.[1]);
+    return years.includes(year) ? year : undefined;
+  };
+  const from = toYear(get("from")) ?? years[0];
+  const to = Math.max(from, toYear(get("to")) ?? years.at(-1)!);
+  const single = from === to;
+  const sortParam = get("sort");
+  const key =
+    sortParam && (sortParam in SORTERS || (sortParam === "finish" && single))
+      ? (sortParam as SortKey)
+      : defaultSort(single).key;
+  const dir = get("dir");
+  return {
+    grouping: (get("view") === "manager" ? "manager" : "franchise") as Grouping,
+    range: { from, to },
+    sort: { key, desc: dir ? dir === "desc" : defaultDesc(key) },
+  };
+}
+
+function toQueryString(
+  { grouping, range, sort }: ReturnType<typeof parseQuery>,
+  columns: SeasonColumn[],
+) {
+  const params = new URLSearchParams();
+  if (grouping !== "franchise") params.set("view", grouping);
+  if (range.from !== columns[0].year) params.set("from", seasonLabel(range.from));
+  if (range.to !== columns.at(-1)!.year) params.set("to", seasonLabel(range.to));
+  const fallback = defaultSort(range.from === range.to);
+  if (sort.key !== fallback.key) params.set("sort", sort.key);
+  if (sort.desc !== defaultDesc(sort.key)) params.set("dir", sort.desc ? "desc" : "asc");
+  return params.toString();
+}
 
 const RESULT_TEXT: Record<SeasonCell["result"], string> = {
   champion: "Champion",
@@ -82,36 +116,46 @@ const fmtPct = (rec: WLT) =>
 export function RecordsView({
   columns: allColumns,
   grids,
+  query,
 }: {
   columns: SeasonColumn[];
   grids: Record<Grouping, Grid>;
+  query: Query;
 }) {
-  const [grouping, setGrouping] = useState<Grouping>("franchise");
-  const [range, setRange] = useState({ from: allColumns[0].year, to: allColumns.at(-1)!.year });
-  const [sort, setSort] = useState<{ key: SortKey; desc: boolean }>({ key: "overall", desc: true });
+  const [initial] = useState(() => parseQuery(query, allColumns));
+  const [grouping, setGrouping] = useState(initial.grouping);
+  const [range, setRange] = useState(initial.range);
+  const [sort, setSort] = useState<Sort>(initial.sort);
+
+  // Mirror the view in the URL so it can be shared.
+  useEffect(() => {
+    const qs = toQueryString({ grouping, range, sort }, allColumns);
+    window.history.replaceState(null, "", qs ? `?${qs}` : window.location.pathname);
+  }, [grouping, range, sort, allColumns]);
 
   const grid = grids[grouping];
   const columns = allColumns.filter((c) => c.year >= range.from && c.year <= range.to);
   const isAllTime = columns.length === allColumns.length;
-  // A single season shows finish and result instead of the multi-season counts.
+  // A single season adds finish and result columns.
   const selected = columns.length === 1 ? columns[0] : undefined;
-  const latestYear = allColumns.filter((c) => c.countsForStreaks).at(-1)?.year;
-  const rows = aggregate(grid, columns, grouping, latestYear);
+  const rows = aggregate(grid, columns, grouping);
   const cellFor = (r: RecordRow) => (selected ? grid[r.key]?.[selected.year] : undefined);
   const sortValue = (r: RecordRow) =>
     sort.key === "finish" ? (cellFor(r)?.finish ?? Infinity) : SORTERS[sort.key](r);
 
-  const selectRange = (edge: "from" | "to", year: number) => {
-    // Keep from <= to by dragging the other end along.
-    const next =
-      edge === "from"
-        ? { from: year, to: Math.max(year, range.to) }
-        : { from: Math.min(year, range.from), to: year };
+  const changeRange = (next: { from: number; to: number }) => {
     const single = next.from === next.to;
     setRange(next);
-    if (single && !selected) setSort({ key: "finish", desc: false });
-    if (!single && sort.key === "finish") setSort({ key: "overall", desc: true });
+    if (single && !selected) setSort(defaultSort(true));
+    if (!single && sort.key === "finish") setSort(defaultSort(false));
   };
+  // Keep from <= to by dragging the other end along.
+  const selectRange = (edge: "from" | "to", year: number) =>
+    changeRange(
+      edge === "from"
+        ? { from: year, to: Math.max(year, range.to) }
+        : { from: Math.min(year, range.from), to: year },
+    );
 
   const title = isAllTime
     ? "All-time"
@@ -129,7 +173,7 @@ export function RecordsView({
     <th className={`${TH} ${className}`}>
       <button
         className="hover:underline"
-        onClick={() => setSort((s) => ({ key: k, desc: s.key === k ? !s.desc : !ASCENDING_KEYS.includes(k) }))}
+        onClick={() => setSort((s) => ({ key: k, desc: s.key === k ? !s.desc : defaultDesc(k) }))}
       >
         {children}
         {sort.key === k ? (sort.desc ? " ↓" : " ↑") : ""}
@@ -180,10 +224,7 @@ export function RecordsView({
           {!isAllTime && (
             <button
               className="underline"
-              onClick={() => {
-                setRange({ from: allColumns[0].year, to: allColumns.at(-1)!.year });
-                if (sort.key === "finish") setSort({ key: "overall", desc: true });
-              }}
+              onClick={() => changeRange({ from: allColumns[0].year, to: allColumns.at(-1)!.year })}
             >
               All-time
             </button>
@@ -196,38 +237,32 @@ export function RecordsView({
                 <th className={TH} />
                 <th className={TH} />
                 <th className={TH} />
+                {selected && <th className={TH} />}
                 <th colSpan={2} className={`${TH} text-center`}>Regular season</th>
                 <th colSpan={2} className={`${TH} text-center`}>Playoffs</th>
                 <th colSpan={2} className={`${TH} text-center`}>Combined</th>
-                <th colSpan={selected ? 1 : 4} className={TH} />
-                {!selected && (
-                  <th colSpan={2} className={`${TH} text-center`}>
-                    Playoff streak
-                  </th>
-                )}
+                <th colSpan={4} className={TH} />
+                <th colSpan={2} className={`${TH} text-center`}>Playoff streak</th>
+                {selected && <th className={TH} />}
               </tr>
               <tr>
                 <th className={TH}>#</th>
-                <SortHeader k="label" className="text-left">{nameHeader}</SortHeader>
-                {selected ? <SortHeader k="finish">Finish</SortHeader> : <SortHeader k="seasons">Yrs</SortHeader>}
+                <SortHeader k="name" className="text-left">{nameHeader}</SortHeader>
+                <SortHeader k="seasons">Yrs</SortHeader>
+                {selected && <SortHeader k="finish">Finish</SortHeader>}
                 <th className={TH}>W-L-T</th>
                 <SortHeader k="regular">Pct</SortHeader>
                 <th className={TH}>W-L-T</th>
                 <SortHeader k="playoffs">Pct</SortHeader>
                 <th className={TH}>W-L-T</th>
-                <SortHeader k="overall">Pct</SortHeader>
-                {selected ? (
-                  <th className={`${TH} text-left`}>Result</th>
-                ) : (
-                  <>
-                    <SortHeader k="titles">Titles</SortHeader>
-                    <SortHeader k="finals">Finals</SortHeader>
-                    <SortHeader k="playoffApps">Playoffs</SortHeader>
-                    <SortHeader k="byes">Byes</SortHeader>
-                    <SortHeader k="madeStreak">Made</SortHeader>
-                    <SortHeader k="missedStreak">Missed</SortHeader>
-                  </>
-                )}
+                <SortHeader k="combined">Pct</SortHeader>
+                <SortHeader k="titles">Titles</SortHeader>
+                <SortHeader k="finals">Finals</SortHeader>
+                <SortHeader k="playoff-apps">Playoffs</SortHeader>
+                <SortHeader k="byes">Byes</SortHeader>
+                <SortHeader k="made-streak">Made</SortHeader>
+                <SortHeader k="missed-streak">Missed</SortHeader>
+                {selected && <th className={`${TH} text-left`}>Result</th>}
               </tr>
             </thead>
             <tbody className="bg-white dark:bg-slate-800">
@@ -249,29 +284,27 @@ export function RecordsView({
                         <span className="font-bold">{r.label}</span>
                       )}
                     </td>
-                    <td className={TD}>{cell ? cell.finish : r.seasons}</td>
+                    <td className={TD}>{r.seasons}</td>
+                    {cell && <td className={TD}>{cell.finish}</td>}
                     <td className={TD}>{fmtWLT(r.regular)}</td>
                     <td className={TD}>{fmtPct(r.regular)}</td>
                     <td className={TD}>{fmtWLT(r.playoffs)}</td>
                     <td className={TD}>{fmtPct(r.playoffs)}</td>
                     <td className={TD}>{fmtWLT(r.overall)}</td>
                     <td className={TD}>{fmtPct(r.overall)}</td>
-                    {cell && selected ? (
+                    <td className={TD}>{r.titles ? "🏆".repeat(r.titles) : "-"}</td>
+                    <td className={TD}>{r.finals || "-"}</td>
+                    <td className={TD}>{r.playoffApps || "-"}</td>
+                    <td className={TD}>{r.byes || "-"}</td>
+                    <StreakCell streak={r.madeStreak} />
+                    <StreakCell streak={r.missedStreak} />
+                    {cell && selected && (
                       <td className={`${TD} text-left`}>
                         {selected.inProgress && cell.result !== "champion"
                           ? "In progress"
                           : `${cell.result === "champion" ? "🏆 " : ""}${RESULT_TEXT[cell.result]}`}
                         {cell.bye && " (bye)"}
                       </td>
-                    ) : (
-                      <>
-                        <td className={TD}>{r.titles ? "🏆".repeat(r.titles) : "-"}</td>
-                        <td className={TD}>{r.finals || "-"}</td>
-                        <td className={TD}>{r.playoffApps || "-"}</td>
-                        <td className={TD}>{r.byes || "-"}</td>
-                        <StreakCell streak={r.madeStreak} />
-                        <StreakCell streak={r.missedStreak} />
-                      </>
                     )}
                   </tr>
                 );
@@ -279,12 +312,10 @@ export function RecordsView({
             </tbody>
           </table>
         </div>
-        {!selected && (
-          <p className="text-xs mt-2">
-            Playoff streaks are the longest runs of consecutive seasons; * still active. 2019-20 and
-            the current season are skipped. Hover for the seasons.
-          </p>
-        )}
+        <p className="text-xs mt-2">
+          Playoff streaks are the longest runs of consecutive seasons in the range; * runs through
+          the end of it. 2019-20 and the current season are skipped. Hover for the seasons.
+        </p>
       </section>
 
       <section>
