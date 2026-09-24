@@ -3,7 +3,7 @@ import { LEAGUE_ID } from "../constants/league";
 import historyJson from "../data/history.json";
 import { fetchFantraxSeason } from "../lib/fantrax";
 import { seasonLabel, type Season } from "../lib/history";
-import { buildRecords, seasonColumns } from "../lib/records";
+import { buildGrid, seasonColumns } from "../lib/records";
 import { RecordsView } from "./RecordsView";
 
 export const metadata: Metadata = {
@@ -49,9 +49,9 @@ export default async function RecordsPage() {
       )}
       <RecordsView
         columns={seasonColumns(seasons)}
-        records={{
-          franchise: buildRecords(seasons, "franchise"),
-          manager: buildRecords(seasons, "manager"),
+        grids={{
+          franchise: buildGrid(seasons, "franchise"),
+          manager: buildGrid(seasons, "manager"),
         }}
       />
     </main>
