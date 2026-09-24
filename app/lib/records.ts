@@ -19,7 +19,12 @@ export type RecordRow = {
   playoffApps: number;
   // First-round playoff byes.
   byes: number;
+  // Longest runs of consecutive seasons making / missing the playoffs.
+  madeStreak: Streak | null;
+  missedStreak: Streak | null;
 };
+
+export type Streak = { length: number; from: number; to: number; active: boolean };
 
 export type SeasonCell = {
   teamName: string;
@@ -27,6 +32,7 @@ export type SeasonCell = {
   // 1 = champion, 2 = runner-up, then regular season order.
   finish: number;
   regular: WLT;
+  playoffs: WLT;
   bye: boolean;
   result: "champion" | "runner-up" | "semis" | "quarters" | "playoffs" | "missed";
 };
@@ -39,16 +45,14 @@ export type SeasonColumn = {
   champion: string | null;
   runnerUp: string | null;
   inProgress: boolean;
+  // Finished seasons with a playoff bracket; others (2019-20, the current
+  // season) neither extend nor break a playoff streak.
+  countsForStreaks: boolean;
   note?: string;
 };
 
-export type Records = {
-  rows: RecordRow[];
-  // Records for a single season, keyed by year.
-  bySeason: Record<number, RecordRow[]>;
-  // grid[key][year]
-  grid: Record<string, Record<number, SeasonCell>>;
-};
+// grid[key][year], where key is a franchise id or a manager name.
+export type Grid = Record<string, Record<number, SeasonCell>>;
 
 const empty = (): WLT => ({ w: 0, l: 0, t: 0 });
 
@@ -100,26 +104,17 @@ export function seasonColumns(seasons: Season[]): SeasonColumn[] {
     champion: withManager(s.champion, s.year),
     runnerUp: withManager(s.runnerUp, s.year),
     inProgress: !!s.inProgress,
+    countsForStreaks: !s.inProgress && s.playoffTeams.length > 0,
     note: s.note,
   }));
 }
 
-export function buildRecords(seasons: Season[], grouping: Grouping): Records {
-  return {
-    ...tally(seasons, grouping),
-    bySeason: Object.fromEntries(seasons.map((s) => [s.year, tally([s], grouping).rows])),
-  };
-}
+const sum = (a: WLT, b: WLT): WLT => ({ w: a.w + b.w, l: a.l + b.l, t: a.t + b.t });
 
-function tally(seasons: Season[], grouping: Grouping): Omit<Records, "bySeason"> {
-  const rows = new Map<string, RecordRow & { names: Set<string> }>();
-  const grid: Records["grid"] = {};
-
-  const keyFor = (teamName: string, year: number) => {
-    const franchise = franchiseFor(teamName);
-    const manager = managerFor(franchise, year);
-    return { key: grouping === "franchise" ? franchise.id : manager, manager };
-  };
+// One cell per team per season. Everything else is aggregated from this, so
+// the page can total any range of seasons.
+export function buildGrid(seasons: Season[], grouping: Grouping): Grid {
+  const grid: Grid = {};
 
   for (const season of seasons) {
     const finishOrder = [
@@ -132,75 +127,93 @@ function tally(seasons: Season[], grouping: Grouping): Omit<Records, "bySeason">
     );
 
     for (const teamName of season.standings) {
-      const { key, manager } = keyFor(teamName, season.year);
-      const row =
-        rows.get(key) ??
-        rows
-          .set(key, {
-            key,
-            label: grouping === "franchise" ? teamName : manager,
-            aka: [],
-            names: new Set(),
-            seasons: 0,
-            regular: empty(),
-            playoffs: empty(),
-            overall: empty(),
-            titles: 0,
-            finals: 0,
-            playoffApps: 0,
-            byes: 0,
-          })
-          .get(key)!;
-      row.names.add(teamName);
-      // Seasons are processed oldest first, so the last name seen is the current one.
-      if (grouping === "franchise") row.label = teamName;
-      row.seasons++;
+      const franchise = franchiseFor(teamName);
+      const manager = managerFor(franchise, season.year);
+      const key = grouping === "franchise" ? franchise.id : manager;
 
       const regular = empty();
+      const playoffs = empty();
       let lastRound: PlayoffRound | null = null;
       for (const g of season.games) {
         const side = g.a === teamName ? 0 : g.b === teamName ? 1 : -1;
         if (side < 0) continue;
         const [pts, oppPts] = side === 0 ? [g.aPts, g.bPts] : [g.bPts, g.aPts];
-        addResult(g.round ? row.playoffs : regular, pts, oppPts);
-        addResult(row.overall, pts, oppPts);
+        addResult(g.round ? playoffs : regular, pts, oppPts);
         if (g.round) lastRound = g.round;
       }
-      row.regular.w += regular.w;
-      row.regular.l += regular.l;
-      row.regular.t += regular.t;
 
       const madePlayoffs = season.playoffTeams.includes(teamName);
-      const isChamp = season.champion === teamName;
-      const isRunnerUp = season.runnerUp === teamName;
-      const bye = madePlayoffs && quarterfinalists.size > 0 && !quarterfinalists.has(teamName);
-      if (madePlayoffs) row.playoffApps++;
-      if (bye) row.byes++;
-      if (isChamp) row.titles++;
-      if (isChamp || isRunnerUp) row.finals++;
-
       (grid[key] ??= {})[season.year] = {
         teamName,
         manager,
         finish: finishOrder.indexOf(teamName) + 1,
         regular,
-        bye,
-        result: isChamp
-          ? "champion"
-          : lastRound && !season.inProgress
-            ? ROUND_RESULT[lastRound]
-            : madePlayoffs
-              ? "playoffs"
-              : "missed",
+        playoffs,
+        bye: madePlayoffs && quarterfinalists.size > 0 && !quarterfinalists.has(teamName),
+        result:
+          season.champion === teamName
+            ? "champion"
+            : lastRound && !season.inProgress
+              ? ROUND_RESULT[lastRound]
+              : madePlayoffs
+                ? "playoffs"
+                : "missed",
       };
     }
   }
+  return grid;
+}
 
-  return {
-    rows: Array.from(rows.values()).map(({ names, ...row }) => ({
-      ...row,
-      aka: distinctNames(Array.from(names)).filter((n) => nameKey(n) !== nameKey(row.label)),
-    })),
-    grid,
+// Records over the given seasons (oldest first). A streak is only "active" if
+// it runs through `latestYear`, the most recent finished season overall.
+export function aggregate(
+  grid: Grid,
+  columns: SeasonColumn[],
+  grouping: Grouping,
+  latestYear: number | undefined,
+): RecordRow[] {
+  const streakYears = columns.filter((c) => c.countsForStreaks).map((c) => c.year);
+
+  const longestStreak = (seasons: Record<number, SeasonCell>, made: boolean) => {
+    let best = null as Streak | null;
+    let run = null as Streak | null;
+    for (const year of streakYears) {
+      const cell = seasons[year];
+      if (cell && (cell.result !== "missed") === made) {
+        run = run
+          ? { ...run, length: run.length + 1, to: year }
+          : { length: 1, from: year, to: year, active: false };
+        if (!best || run.length >= best.length) best = run;
+      } else {
+        run = null;
+      }
+    }
+    return best && { ...best, active: best.to === latestYear };
   };
+
+  return Object.entries(grid).flatMap(([key, seasons]) => {
+    const cells = columns.map((c) => seasons[c.year]).filter((cell) => !!cell);
+    if (!cells.length) return [];
+    const names = cells.map((c) => c.teamName);
+    const label = grouping === "franchise" ? names.at(-1)! : key;
+    const regular = cells.reduce((acc, c) => sum(acc, c.regular), empty());
+    const playoffs = cells.reduce((acc, c) => sum(acc, c.playoffs), empty());
+    return [
+      {
+        key,
+        label,
+        aka: distinctNames(names).filter((n) => nameKey(n) !== nameKey(label)),
+        seasons: cells.length,
+        regular,
+        playoffs,
+        overall: sum(regular, playoffs),
+        titles: cells.filter((c) => c.result === "champion").length,
+        finals: cells.filter((c) => c.result === "champion" || c.result === "runner-up").length,
+        playoffApps: cells.filter((c) => c.result !== "missed").length,
+        byes: cells.filter((c) => c.bye).length,
+        madeStreak: longestStreak(seasons, true),
+        missedStreak: longestStreak(seasons, false),
+      },
+    ];
+  });
 }
