@@ -79,9 +79,15 @@ export async function fetchFantraxSeason(
   const playoffTeams = new Set<string>();
   let champion: string | null = null;
   let runnerUp: string | null = null;
+  // Label rounds by teams still alive rather than position, since a 4-team
+  // bracket can span 3 rounds. Byes aren't always listed (2025-26's first round
+  // shows only 4 teams), so a 3-4 team round followed by another is still a QF.
+  const alive = rounds.map(
+    (r) => r.playoffList.flatMap((m) => [m.awayId, m.homeId]).filter((id) => !id.startsWith("-")).length,
+  );
   rounds.forEach((round, i) => {
-    const fromFinal = rounds.length - 1 - i;
-    const label: PlayoffRound = fromFinal === 0 ? "F" : fromFinal === 1 ? "SF" : "QF";
+    const semisLater = alive.slice(i + 1).some((n) => n > 2);
+    const label: PlayoffRound = alive[i] > 4 || (alive[i] > 2 && semisLater) ? "QF" : alive[i] > 2 ? "SF" : "F";
     // "23 (Mar 28 - Apr 3)": playoff dates are always in the second calendar year.
     const [, week, endStr] = round.subCaption.match(/^(\d+) \(.+? - (.+?)\)/)!;
     const over = now > endOfDayEastern(`${endStr}, ${year + 1}`);
