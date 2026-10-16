@@ -88,6 +88,10 @@ const getPeriodDateObject = (periodNumber: number): Date => {
   return date;
 };
 
+// YYYY-MM-DD for a period, the same game date the NHL schedule uses
+export const getPeriodISODate = (periodNumber: number): string =>
+  getPeriodDateObject(periodNumber).toISOString().slice(0, 10);
+
 // Helper function to get current UTC date (works consistently on client and server)
 const getCurrentUTCDate = (): Date => {
   const now = new Date();
