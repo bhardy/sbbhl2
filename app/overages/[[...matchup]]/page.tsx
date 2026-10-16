@@ -176,13 +176,14 @@ function OverageTable({ overage }: { overage: Overage }) {
       </h3>
       <div className="relative rounded-xl overflow-auto -mx-4">
         <div className="shadow-sm my-4">
-          <table className="border-collapse table-auto w-full text-sm">
+          {/* Fixed widths so every team's table lines up */}
+          <table className="border-collapse table-fixed w-full min-w-[64rem] text-sm">
             <thead>
               <tr>
-                <th className={TH}>Player</th>
-                <th className={TH}>Start</th>
-                <th className={TH}>Game</th>
-                <th className={TH}>FPts</th>
+                <th className={`${TH} w-60`}>Player</th>
+                <th className={`${TH} w-64`}>Start</th>
+                <th className={`${TH} w-36`}>Game</th>
+                <th className={`${TH} w-24`}>FPts</th>
                 <th className={TH}>Note</th>
               </tr>
             </thead>
