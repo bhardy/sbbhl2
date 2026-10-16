@@ -1,8 +1,9 @@
 # SBBHL
 
-The Super Best Buds Hockey League site. Two pages:
+The Super Best Buds Hockey League site. Three pages:
 
 - **Lineup Helper** (`/`, `/team/...`): per-team lineups and games played against the weekly position caps, pulled live from Fantrax.
+- **Overages** (`/overages/<matchup>`): every team that went over a position cap for the week, with the games the commissioner should unset. League rule: unset the latest start of the week first, and for games that start at the same time, the higher Fantrax score first. Start times come from the NHL schedule API (`api-web.nhle.com`). Defaults to the last finished week.
 - **All-Time Records** (`/records`): records by franchise or manager across every season, including the old Yahoo seasons (2013-14 to 2019-20) and every Fantrax season since.
 
 ## Development
@@ -10,6 +11,7 @@ The Super Best Buds Hockey League site. Two pages:
 ```bash
 npm install
 npm run dev # http://localhost:3001
+npm test    # unit tests (node --test), e.g. the overage rules
 ```
 
 Requires Node 24 (see `.nvmrc`).
