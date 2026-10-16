@@ -5,8 +5,8 @@ import { usePathname } from "next/navigation";
 
 const LINKS = [
   { href: "/", label: "Lineup Helper", isActive: (p: string) => p === "/" || p.startsWith("/team") },
-  { href: "/overages", label: "Overages", isActive: (p: string) => p.startsWith("/overages") },
   { href: "/records", label: "All-Time Records", isActive: (p: string) => p.startsWith("/records") },
+  { href: "/overages", label: "GP Overages", isActive: (p: string) => p.startsWith("/overages") },
 ];
 
 export const SiteNav = () => {
