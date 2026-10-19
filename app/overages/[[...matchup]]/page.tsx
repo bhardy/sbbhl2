@@ -16,6 +16,9 @@ import {
 } from "../../lib/overages";
 import { WeekSelect } from "../WeekSelect";
 
+// Headroom over Vercel's 10s default for Fantrax's slow in-progress days.
+export const maxDuration = 30;
+
 export const metadata: Metadata = {
   title: "SBBHL Overages",
   description: "Which games to unset when a team goes over a weekly games-played cap",
@@ -48,23 +51,33 @@ async function getTeams(): Promise<{ id: string; name: string }[]> {
   return data.fantasyTeams;
 }
 
-// One request per team: each day of the matchup, with that day's stats, plus
-// Fantrax's GP-per-position table to check our count against.
+// Each day of the matchup, with that day's stats, plus Fantrax's
+// GP-per-position table to check our count against. Fantrax answers a batch
+// one message at a time and is slow (~1s) for days that aren't final yet, so
+// every day goes out as its own request.
 async function getTeamWeek(teamId: string, matchup: string, periods: string[]) {
-  const responses = await fantrax([
-    ...periods.map((period) => ({
-      method: "getTeamRosterInfo",
-      data: { leagueId: LEAGUE_ID, teamId, period, timeframeTypeCode: "BY_PERIOD" },
-    })),
-    {
-      method: "getTeamRosterInfo",
-      data: { leagueId: LEAGUE_ID, teamId, scoringPeriod: matchup, view: "GAMES_PER_POS" },
-    },
+  const [days, [gpData]] = await Promise.all([
+    Promise.all(
+      periods.map((period) =>
+        fantrax([
+          {
+            method: "getTeamRosterInfo",
+            data: { leagueId: LEAGUE_ID, teamId, period, timeframeTypeCode: "BY_PERIOD" },
+          },
+        ]),
+      ),
+    ),
+    fantrax([
+      {
+        method: "getTeamRosterInfo",
+        data: { leagueId: LEAGUE_ID, teamId, scoringPeriod: matchup, view: "GAMES_PER_POS" },
+      },
+    ]),
   ]);
-  const gp: GpRow[] = responses[periods.length].gamePlayedPerPosData.tableData;
+  const gp: GpRow[] = gpData.gamePlayedPerPosData.tableData;
   return {
     games: periods.flatMap((period, i) =>
-      parseRosterDay(responses[i].tables, getPeriodISODate(Number(period))),
+      parseRosterDay(days[i][0].tables, getPeriodISODate(Number(period))),
     ),
     fantraxGp: Object.fromEntries(gp.map((row) => [row.posShort, row])) as Record<Position, GpRow>,
   };
@@ -100,24 +113,32 @@ export default async function OveragesPage({ params }: { params: { matchup?: str
   const matchup =
     params.matchup?.[0] ?? String(Math.max(1, Number(getCurrentWeek()) - 1));
   if (!MATCHUPS[matchup]) return <main className="mt-8">No matchup {matchup}</main>;
-  const { periods, maxGamesPerPos } = MATCHUPS[matchup];
-
-  const [teams, starts] = await Promise.all([getTeams(), getStarts(periods)]);
-  const results = await Promise.all(
-    teams.map(async (team) => {
-      const { games, fantraxGp } = await getTeamWeek(team.id, matchup, periods);
-      const fantraxCaps = capsFrom(fantraxGp);
-      const counted = games.map((g) => withStart(g, starts));
-      return {
-        ...team,
-        overages: findOverages(counted, maxGamesPerPos ?? fantraxCaps, fantraxCaps),
-        mismatches: POSITIONS.flatMap((pos) => {
-          const ours = counted.filter((g) => g.pos === pos).length;
-          return ours === fantraxGp[pos].gp ? [] : [{ pos, ours, fantrax: fantraxGp[pos].gp }];
-        }),
-      };
-    }),
+  const { maxGamesPerPos } = MATCHUPS[matchup];
+  // Days that haven't started (Eastern) have no games to count.
+  const today = DateTime.now().setZone("America/New_York").toISODate()!;
+  const periods = MATCHUPS[matchup].periods.filter(
+    (period) => getPeriodISODate(Number(period)) <= today,
   );
+
+  const startsPromise = getStarts(periods);
+  const teams = await getTeams();
+  const [starts, weeks] = await Promise.all([
+    startsPromise,
+    Promise.all(teams.map((team) => getTeamWeek(team.id, matchup, periods))),
+  ]);
+  const results = teams.map((team, i) => {
+    const { games, fantraxGp } = weeks[i];
+    const fantraxCaps = capsFrom(fantraxGp);
+    const counted = games.map((g) => withStart(g, starts));
+    return {
+      ...team,
+      overages: findOverages(counted, maxGamesPerPos ?? fantraxCaps, fantraxCaps),
+      mismatches: POSITIONS.flatMap((pos) => {
+        const ours = counted.filter((g) => g.pos === pos).length;
+        return ours === fantraxGp[pos].gp ? [] : [{ pos, ours, fantrax: fantraxGp[pos].gp }];
+      }),
+    };
+  });
   const flagged = results.filter((t) => t.overages.length || t.mismatches.length);
   const clean = results.filter((t) => !t.overages.length && !t.mismatches.length);
 
