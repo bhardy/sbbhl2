@@ -285,3 +285,20 @@ test("withStart matches either team on the game date", () => {
   assert.equal(withStart({ ...base, teams: ["PHI", "TBL"] }, starts).start, "2026-10-05T23:00:00Z");
   assert.equal(withStart({ ...base, date: "2026-10-06", teams: ["PHI"] }, starts).start, null);
 });
+
+test("lists every game at the position in counting order, unset ones last", () => {
+  const games = [
+    game("Late", "G", "2026-10-10", "22:00", 1),
+    game("Mon", "G", "2026-10-05", "19:00", 3),
+    game("Early high", "G", "2026-10-10", "13:00", 5),
+    game("Early low", "G", "2026-10-10", "13:00", 2),
+    game("Tue", "G", "2026-10-06", "19:00"),
+    game("Wed", "G", "2026-10-07", "19:00"),
+  ];
+  const [overage] = findOverages(games, CAPS);
+  assert.deepEqual(
+    overage.games.map((g) => g.player),
+    ["Mon", "Tue", "Wed", "Early low", "Early high", "Late"],
+  );
+  assert.deepEqual(overage.unset.map((u) => u.player), ["Late"]);
+});

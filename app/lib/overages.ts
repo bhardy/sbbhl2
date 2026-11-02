@@ -40,6 +40,10 @@ export type Overage = {
   gp: number;
   max: number;
   unset: Unset[];
+  // Every game counted at the position, in the order the rule counts them:
+  // earliest start first, and the lower score first on a tied start. The ones
+  // past the max are the ones to unset.
+  games: PlayerGame[];
   // Games left in the lineup that tie the last unset game on start time and
   // points, so any of them could be unset instead.
   tiedWith: PlayerGame[];
@@ -95,6 +99,7 @@ export function findOverages(
         unset: order
           .slice(0, excess)
           .map((g) => ({ ...g, scoredZero: maxMet !== null && g.date > maxMet })),
+        games: [...order].reverse(),
         tiedWith: order.slice(excess).filter((g) => unsetOrder(g, last) === 0),
       },
     ];
