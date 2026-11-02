@@ -14,6 +14,7 @@ import {
   type Overage,
   type Position,
 } from "../../lib/overages";
+import { GamesDetails } from "../GamesDetails";
 import { WeekSelect } from "../WeekSelect";
 
 // Headroom over Vercel's 10s default for Fantrax's slow in-progress days.
@@ -100,6 +101,10 @@ async function getStarts(periods: string[]) {
   return scheduleStarts(weeks.flat());
 }
 
+// The game lists to show expanded, from `?open=<teamId>-<pos>,...`.
+const openIds = (value: string | string[] | undefined) =>
+  new Set([value ?? []].flat().join(",").split(",").filter(Boolean));
+
 const capsFrom = (gp: Record<Position, GpRow>) =>
   Object.fromEntries(POSITIONS.map((pos) => [pos, gp[pos].max])) as Caps;
 
@@ -108,7 +113,14 @@ const formatStart = (start: string) =>
 
 const formatDate = (date: string) => DateTime.fromISO(date).toFormat("ccc MMM d");
 
-export default async function OveragesPage({ params }: { params: { matchup?: string[] } }) {
+export default async function OveragesPage({
+  params,
+  searchParams,
+}: {
+  params: { matchup?: string[] };
+  searchParams: { open?: string | string[] };
+}) {
+  const open = openIds(searchParams.open);
   // Default to the last finished week, when the commissioner cleans up.
   const matchup =
     params.matchup?.[0] ?? String(Math.max(1, Number(getCurrentWeek()) - 1));
@@ -169,7 +181,12 @@ export default async function OveragesPage({ params }: { params: { matchup?: str
             </p>
           ))}
           {team.overages.map((overage) => (
-            <OverageTable key={overage.pos} overage={overage} />
+            <OverageTable
+              key={overage.pos}
+              overage={overage}
+              detailsId={`${team.id}-${overage.pos}`}
+              open={open.has(`${team.id}-${overage.pos}`)}
+            />
           ))}
         </section>
       ))}
@@ -184,7 +201,15 @@ const TH =
   "border-b border-slate-300 dark:border-slate-500 font-bold p-4 pt-0 pb-3 text-slate-700 dark:text-slate-100 text-left";
 const TD = "border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200";
 
-function OverageTable({ overage }: { overage: Overage }) {
+function OverageTable({
+  overage,
+  detailsId,
+  open,
+}: {
+  overage: Overage;
+  detailsId: string;
+  open: boolean;
+}) {
   const { pos, gp, max, unset, games, tiedWith } = overage;
   const unsetKeys = new Set(unset.map((g) => `${g.playerId}-${g.date}`));
   return (
@@ -231,10 +256,7 @@ function OverageTable({ overage }: { overage: Overage }) {
           </table>
         </div>
       </div>
-      <details className="text-sm">
-        <summary className="cursor-pointer text-slate-500 dark:text-slate-400">
-          Show all {gp} {pos} games
-        </summary>
+      <GamesDetails id={detailsId} defaultOpen={open} summary={`Show all ${gp} ${pos} games`}>
         <p className="mt-2 max-w-3xl text-slate-500 dark:text-slate-400">
           Every game that counted at {pos}, in order of start time (the lower score first when two
           start at the same time). Games 1 to {max} stay; the rest get unset.
@@ -276,7 +298,7 @@ function OverageTable({ overage }: { overage: Overage }) {
             </table>
           </div>
         </div>
-      </details>
+      </GamesDetails>
       {tiedWith.length > 0 && (
         <p className="text-sm text-amber-500">
           Tied on start time and score with {tiedWith.map((g) => g.player).join(", ")}. Any of them
