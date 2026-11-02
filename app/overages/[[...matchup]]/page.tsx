@@ -185,7 +185,8 @@ const TH =
 const TD = "border-b border-slate-200 dark:border-slate-700 p-4 text-slate-700 dark:text-slate-200";
 
 function OverageTable({ overage }: { overage: Overage }) {
-  const { pos, gp, max, unset, tiedWith } = overage;
+  const { pos, gp, max, unset, games, tiedWith } = overage;
+  const unsetKeys = new Set(unset.map((g) => `${g.playerId}-${g.date}`));
   return (
     <div>
       <h3 className="font-bold text-slate-700 dark:text-slate-200">
@@ -230,6 +231,52 @@ function OverageTable({ overage }: { overage: Overage }) {
           </table>
         </div>
       </div>
+      <details className="text-sm">
+        <summary className="cursor-pointer text-slate-500 dark:text-slate-400">
+          Show all {gp} {pos} games
+        </summary>
+        <p className="mt-2 max-w-3xl text-slate-500 dark:text-slate-400">
+          Every game that counted at {pos}, in order of start time (the lower score first when two
+          start at the same time). Games 1 to {max} stay; the rest get unset.
+        </p>
+        <div className="relative rounded-xl overflow-auto -mx-4">
+          <div className="shadow-sm my-4">
+            <table className="border-collapse table-fixed w-full min-w-[64rem] text-sm">
+              <thead>
+                <tr>
+                  <th className={`${TH} w-16`}>#</th>
+                  <th className={`${TH} w-60`}>Player</th>
+                  <th className={`${TH} w-64`}>Start</th>
+                  <th className={`${TH} w-36`}>Game</th>
+                  <th className={`${TH} w-24`}>FPts</th>
+                  <th className={TH}></th>
+                </tr>
+              </thead>
+              <tbody className="bg-white dark:bg-slate-800">
+                {games.map((game, i) => {
+                  const isUnset = unsetKeys.has(`${game.playerId}-${game.date}`);
+                  // Unset rows in red; TD's own text color would win over the row's.
+                  const td = isUnset
+                    ? "border-b border-slate-200 dark:border-slate-700 p-4 font-bold text-red-400"
+                    : TD;
+                  return (
+                    <tr key={`${game.playerId}-${game.date}`}>
+                      <td className={td}>{i + 1}</td>
+                      <td className={td}>{game.player}</td>
+                      <td className={`${td} whitespace-nowrap`}>
+                        {game.start ? formatStart(game.start) : formatDate(game.date)}
+                      </td>
+                      <td className={`${td} whitespace-nowrap`}>{game.game}</td>
+                      <td className={td}>{game.fpts}</td>
+                      <td className={td}>{isUnset ? "Unset" : ""}</td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </details>
       {tiedWith.length > 0 && (
         <p className="text-sm text-amber-500">
           Tied on start time and score with {tiedWith.map((g) => g.player).join(", ")}. Any of them
